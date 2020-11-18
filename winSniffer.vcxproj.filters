@@ -33,6 +33,24 @@
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="packet.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="protocolHeader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="packetPool.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="packetCatcher.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="threadParam.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="winSniffer.cpp">
@@ -42,6 +60,15 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="packet.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="packetCatcher.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="threadParam.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
