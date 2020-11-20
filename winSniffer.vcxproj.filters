@@ -71,6 +71,9 @@
     <ClCompile Include="threadParam.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="packetPool.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="winSniffer.rc">
@@ -86,5 +89,8 @@
     <Image Include="res\winSniffer.ico">
       <Filter>资源文件</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\..\..\WpdPack\Lib\wpcap.lib" />
   </ItemGroup>
 </Project>

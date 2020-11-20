@@ -3,8 +3,8 @@
 #include "packetPool.h"
 #include "atltime.h"
 
-#define WM_TEXTIT (WM_USER + 101);
-#define WM_PKTCATCH (WM_USER + 100);
+#define WM_TEXTIT (WM_USER + 101)
+#define WM_PKTCATCH (WM_USER + 100)
 
 const int MODE_CAPTURE_LIVE = 0;
 const int MODE_CAPTURE_OFFLINE = 1;

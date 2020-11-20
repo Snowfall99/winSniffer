@@ -10,7 +10,7 @@ public:
 	packetPool();
 	~packetPool();
 
-	void add(const struct pcap_pkt_hdr* header, const char* pkt_data);
+	void add(const struct pcap_pkthdr* header, const u_char* pkt_data);
 	void add(packet& pkt);
 	void remove(int pktNum);
 	void clear();

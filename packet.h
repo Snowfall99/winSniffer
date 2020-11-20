@@ -8,25 +8,25 @@ public:
 	TCP_Header		*tcp_header;					// TCP首部
 	UDP_Header		*udp_header;					// UDP首部
 
-	char			*http_msg;						// HTTP报文
-	char			*packet_data;					// 数据包
+	u_char			*http_msg;						// HTTP报文
+	u_char			*packet_data;					// 数据包
 	struct pcap_pkthdr	*header;					// 捕获数据包长度，数据包到达时间
-	short			num;							// 数据包编号，从1开始
+	u_short			num;							// 数据包编号，从1开始
 	CString         protocol;						// 协议
 
 	packet();
 	packet(const packet& p);
-	packet(const struct pcap_pkthdr* header, const char* pkt_data, const short& packet_num);
+	packet(const struct pcap_pkthdr* header, const u_char* pkt_data, const u_short& packet_num);
 	packet& operator=(const packet& p);
 	~packet();
 
 	bool isEmpty() const;
 
 	int decodeEthernet();
-	int decodeIP(char *L2Payload);
-	int decodeTCP(char *L3Payload);
-	int decodeUDP(char *L3Payload);
-	int decodeHTTP(char *L4Payload);
+	int decodeIP(u_char *L2Payload);
+	int decodeTCP(u_char *L3Payload);
+	int decodeUDP(u_char *L3Payload);
+	int decodeHTTP(u_char *L4Payload);
 
 	int getIPHeaderLength() const;
 	int getIPHeaderLengthRaw() const;
@@ -37,7 +37,7 @@ public:
 
 	int getTCPHeaderLength() const;
 	int getTCPHeaderLengthRaw() const;
-	short getTCPFlags()		const;
+	u_short getTCPFlags()		const;
 	int getTCPFlagsURG()	const;
 	int getTCPFlagsACK()	const;
 	int getTCPFlagsPSH()	const;
