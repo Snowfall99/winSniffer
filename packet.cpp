@@ -25,7 +25,7 @@ packet::packet(const packet& p) {
 	if (!p.isEmpty()) {
 		int caplen = p.header->caplen;
 
-		packet_data = (char*)malloc(caplen);
+		packet_data = (u_char*)malloc(caplen);
 		memcpy(packet_data, p.packet_data, caplen);
 
 		header = (struct pcap_pkthdr*)malloc(sizeof(*(p.header)));
@@ -42,7 +42,7 @@ packet::packet(const packet& p) {
 	}
 }
 
-packet::packet(const struct pcap_pkthdr* header, const char* pkt_data, const short& packet_num) {
+packet::packet(const struct pcap_pkthdr* header, const u_char* pkt_data, const u_short& packet_num) {
 	eth_header = NULL;
 	ip_header = NULL;
 	udp_header = NULL;
@@ -51,7 +51,7 @@ packet::packet(const struct pcap_pkthdr* header, const char* pkt_data, const sho
 	num = packet_num;
 
 	if (pkt_data != NULL && header != NULL) {
-		this->packet_data = (char*)malloc(header->caplen);
+		this->packet_data = (u_char*)malloc(header->caplen);
 		memcpy(this->packet_data, pkt_data, header->caplen);
 
 		this->header = (struct pcap_pkthdr*)malloc(sizeof(*header));
@@ -77,7 +77,7 @@ packet& packet::operator=(const packet& p) {
 	if (!p.isEmpty()) {
 		int caplen = p.header->caplen;
 		if (packet_data == NULL) {
-			packet_data = (char*)malloc(caplen);
+			packet_data = (u_char*)malloc(caplen);
 		}
 		memcpy(packet_data, p.packet_data, caplen);
 
@@ -139,7 +139,7 @@ int packet::decodeEthernet() {
 	return 0;
 }
 
-int packet::decodeIP(char* L2Payload) {
+int packet::decodeIP(u_char* L2Payload) {
 	if (L2Payload == NULL) {
 		return -1;
 	}
@@ -161,7 +161,7 @@ int packet::decodeIP(char* L2Payload) {
 	return 0;
 }
 
-int packet::decodeTCP(char* L3Payload) {
+int packet::decodeTCP(u_char* L3Payload) {
 	if (L3Payload == NULL) {
 		return -1;
 	} 
@@ -179,7 +179,7 @@ int packet::decodeTCP(char* L3Payload) {
 	return 0;
 }
 
-int packet::decodeUDP(char* L3Payload) {
+int packet::decodeUDP(u_char* L3Payload) {
 	if (L3Payload == NULL) {
 		return -1;
 	}
@@ -190,7 +190,7 @@ int packet::decodeUDP(char* L3Payload) {
 	return 0;
 }
 
-int packet::decodeHTTP(char* L4Payload) {
+int packet::decodeHTTP(u_char* L4Payload) {
 	if (L4Payload == NULL) {
 		return 1;
 	}
@@ -241,7 +241,7 @@ int packet::getTCPHeaderLengthRaw() const {
 	else return (ntohs(tcp_header->headerLen_rsv_flags) >> 12);
 }
 
-short packet::getTCPFlags() const {
+u_short packet::getTCPFlags() const {
 	if (tcp_header == NULL) return -1;
 	else return ntohs(tcp_header->headerLen_rsv_flags) & 0x0FFF;
 }

@@ -3,8 +3,14 @@
 //
 
 #pragma once
-
-
+#pragma comment(lib, "wpcap.lib")
+#pragma comment(lib, "ws2_32.lib")
+#pragma warning(disable:4996)
+#include "afxwin.h"
+#include "packetDumper.h"
+#include "packetCatcher.h"
+#include "packetPool.h"
+#define _CRT_SECURE_NO_WARNINGS
 // CwinSnifferDlg 对话框
 class CwinSnifferDlg : public CDialogEx
 {
@@ -24,6 +30,16 @@ public:
 // 实现
 protected:
 	HICON m_hIcon;
+	CToolBar m_toolBarMain;
+
+	/* 标志 */
+	bool m_pktCaptureFlag;
+	bool m_fileOpenFlag;
+	CString m_openFilename;
+
+	/* 数据报相关类 */
+	packetCatcher m_catcher;
+	packetPool* m_pool;
 
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
@@ -32,7 +48,21 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnLvnItemchangedList1(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnEnChangeEdit3();
 	afx_msg void OnEnChangeEdit5();
+	afx_msg void OnBnClickedStartButton();
+	afx_msg void OnBnClickedEndButton();
+
+	CComboBox m_comboBoxDevList;
+	afx_msg void initialComboDevList();
+	CComboBox m_comboBoxFilterList;
+	afx_msg void initialComboFilterlist();
+	CListCtrl m_listCtrlPacketList;
+	afx_msg void initialListCtrlPacketList();
+	CTreeCtrl m_treeCtrlPacketDetails;
+	afx_msg void initialTreeCtrlPacketDetails();
+	afx_msg void test();
+	afx_msg void initialDevList();
+	afx_msg void initialPacketList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void initialFilterList();
 };
