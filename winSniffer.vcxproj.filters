@@ -51,6 +51,9 @@
     <ClInclude Include="threadParam.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="packetDumper.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="winSniffer.cpp">
@@ -74,6 +77,9 @@
     <ClCompile Include="packetPool.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="packetDumper.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="winSniffer.rc">
@@ -87,6 +93,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\winSniffer.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\toolbar1.bmp">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>

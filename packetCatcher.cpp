@@ -39,8 +39,9 @@ bool packetCatcher::openAdapter(int setitemindexofdevlist, const CTime& currentt
 	}
 	int count = 0, setdevindex = setitemindexofdevlist - 1;
 	pcap_if_t* dev, * alldevs;
-	if (pcap_findalldevs(&alldevs, NULL) == -1) {
-		AfxMessageBox(_T("pcap_findalldevs failed!"), MB_OK);
+	char errbuf[1024];
+	if (pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &alldevs, errbuf) == -1) {
+		AfxMessageBox(_T("pcap_findallDevs fails"), MB_OK);
 		return false;
 	}
 
@@ -48,14 +49,15 @@ bool packetCatcher::openAdapter(int setitemindexofdevlist, const CTime& currentt
 
 	m_dev = dev->description = CString(" ( ") + dev->name + " ) ";
 
-	if ((m_adhandle = pcap_open_live(dev->name, 65535, PCAP_OPENFLAG_PROMISCUOUS,  READ_PACKET_TIMEOUT, NULL)) == NULL) {
+	if ((m_adhandle = pcap_open(dev->name, 65536, PCAP_OPENFLAG_PROMISCUOUS,  READ_PACKET_TIMEOUT, NULL, errbuf)) == NULL) {
 		AfxMessageBox(_T("pcap_open_live failed!"), MB_OK);
+		pcap_freealldevs(alldevs);
 		return false;
 	}
 
-	CString file = _T("snifferui_") + currenttime.Format("%y%m%d%h%m%s") + _T(".pcap");
-	CString path = _T(".\\tmp\\") + file;
-	m_dumper = pcap_dump_open(m_adhandle, CStringA(path));
+	//CString file = _T("snifferui_") + currenttime.Format("%y%m%d%h%m%s") + _T(".pcap");
+	/*CString path = _T(".\\tmp\\") + file;
+	m_dumper = pcap_dump_open(m_adhandle, CStringA(path));*/
 
 	pcap_freealldevs(alldevs);
 	return true;
