@@ -49,17 +49,25 @@ bool packetCatcher::openAdapter(int setitemindexofdevlist, const CTime& currentt
 
 	m_dev = dev->description = CString(" ( ") + dev->name + " ) ";
 
-	if ((m_adhandle = pcap_open(dev->name, 65536, PCAP_OPENFLAG_PROMISCUOUS,  READ_PACKET_TIMEOUT, NULL, errbuf)) == NULL) {
-		AfxMessageBox(_T("pcap_open_live failed!"), MB_OK);
+	if ((m_adhandle = pcap_open(dev->name,
+		65536,
+		PCAP_OPENFLAG_PROMISCUOUS,
+		READ_PACKET_TIMEOUT,
+		NULL,
+		errbuf)) == NULL) {
+		AfxMessageBox(_T("pcap_open failed"), MB_OK);
 		pcap_freealldevs(alldevs);
 		return false;
 	}
 
-	//CString file = _T("snifferui_") + currenttime.Format("%y%m%d%h%m%s") + _T(".pcap");
-	/*CString path = _T(".\\tmp\\") + file;
-	m_dumper = pcap_dump_open(m_adhandle, CStringA(path));*/
+	CString file = _T("snifferui.pcap");
+	CString path = _T(".\\tmp\\") + file;
+	m_dumper = pcap_dump_open(m_adhandle, CStringA(path));
 
-	pcap_freealldevs(alldevs);
+	if (m_dumper == NULL) {
+		AfxMessageBox(_T("pcap_dump_open failed"), MB_OK);
+	}
+
 	return true;
 }
 
@@ -109,7 +117,7 @@ UINT capture_thread(LPVOID pParam)
 	threadParam* p = (threadParam*)pParam;
 
 	/* 开始捕获数据包 */
-	pcap_loop(p->m_adhandle, -1, packet_handler, (unsigned char*)p);
+	pcap_loop(p->m_adhandle, 0, packet_handler, (unsigned char*)p);
 	PostMessage(AfxGetMainWnd()->m_hWnd, WM_TEXTIT, NULL, NULL);
 	return 0;
 }

@@ -5,8 +5,12 @@ class packet {
 public:
 	Ethernet_Header *eth_header;					// 以太网首部
 	IP_Header		*ip_header;						// IP首部
+	ARP_Header		*arp_header;					// ARP首部
+	ICMP_Header		*icmp_header;					// ICMP首部
 	TCP_Header		*tcp_header;					// TCP首部
 	UDP_Header		*udp_header;					// UDP首部
+	DNS_Header		*dns_header;					// DNS首部
+	DHCP_Header		*dhcp_header;					// DHCP首部
 
 	u_char			*http_msg;						// HTTP报文
 	u_char			*packet_data;					// 数据包
@@ -24,8 +28,12 @@ public:
 
 	int decodeEthernet();
 	int decodeIP(u_char *L2Payload);
+	int decodeARP(u_char* L2Payload);
+	int decodeICMP(u_char* L3Payload);
 	int decodeTCP(u_char *L3Payload);
 	int decodeUDP(u_char *L3Payload);
+	int decodeDNS(u_char* L4Payload);
+	int decodeDHCP(u_char* L4Payload);
 	int decodeHTTP(u_char *L4Payload);
 
 	int getIPHeaderLength() const;
@@ -34,6 +42,9 @@ public:
 	int getIPFlagsMF() const;
 	int getIPFlagDF() const;
 	int getIPOffset() const;
+
+	u_short getICMPID()	const;
+	u_short getICMPSeq() const;
 
 	int getTCPHeaderLength() const;
 	int getTCPHeaderLengthRaw() const;
@@ -46,4 +57,13 @@ public:
 	int getTCPFlagsFIN()	const;
 
 	int getL4PayloadLength() const;
+
+	int getDNSFlagsQR()		const;
+	int getDNSFlagsOPCODE()	const;
+	int getDNSFlagsAA()		const;
+	int getDNSFlagsTC()		const;
+	int getDNSFlagsRD()		const;
+	int getDNSFlagsRA()		const;
+	int getDNSFlagsZ()		const;
+	int getDNSFlagsRCODE()	const;
 };
