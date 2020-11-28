@@ -39,7 +39,7 @@ protected:
 
 	/* 数据报相关类 */
 	packetCatcher m_catcher;
-	packetPool* m_pool;
+	packetPool m_pool;
 
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
@@ -61,8 +61,25 @@ public:
 	afx_msg void initialListCtrlPacketList();
 	CTreeCtrl m_treeCtrlPacketDetails;
 	afx_msg void initialTreeCtrlPacketDetails();
-	afx_msg void test();
 	afx_msg void initialDevList();
-	afx_msg void initialPacketList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void initialFilterList();
+	afx_msg int printListCtrlPacketList(const packet &pkt);
+	afx_msg int printListCtrlPacketList(packetPool& pool);
+	afx_msg CString MACAddr2CString(const MAC_Address& addr);
+	afx_msg CString IPAddr2CString(const IP_Address& addr);
+	afx_msg int printTreeCtrlPacketDetails(const packet &pkt);
+	afx_msg int printEthernet2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
+	afx_msg int printIP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
+	afx_msg int printARP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
+	afx_msg int printICMP2TreeCtrl(const packet& pkt, HTREEITEM& packetNode);
+	afx_msg int printTCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
+	afx_msg int printUDP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
+	afx_msg int printDNS2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
+	afx_msg int printDHCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
+	afx_msg int printHTTP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
+	CEdit m_editorCtrlPacketBytes;
+	afx_msg void initialEditCtrlPacketBytes();
+	afx_msg int printEditCtrlPacketBytes(const packet& pkt);
+	afx_msg void onClickedList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult);
 };
