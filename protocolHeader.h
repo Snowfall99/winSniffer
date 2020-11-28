@@ -8,6 +8,7 @@
 #define ETHERNET_TYPE_ARP		0x0806
 
 #define PROTOCOL_ICMP			1
+#define PROTOCOL_IGMP			2		
 #define PROTOCOL_TCP			6
 #define PROTOCOL_UDP			17
 
@@ -262,6 +263,13 @@ typedef struct ICMP_Header {
 	u_short		checksum;				// 校验和
 	u_int		others;					// 首部其他部分（由报文类型来确定相应内容）
 }ICMP_Header;
+
+typedef struct IGMP_Header {
+	u_short		type;					// 类型
+	u_short		max_resp;				// 最大响应时延
+	u_short		checksum;				// 校验和
+	IP_Address	group_addr;				// 组地址
+}IGMP_Header;
 
 typedef struct TCP_Header {
 	u_short		src;					// 源端口

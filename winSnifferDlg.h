@@ -72,6 +72,7 @@ public:
 	afx_msg int printIP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	afx_msg int printARP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	afx_msg int printICMP2TreeCtrl(const packet& pkt, HTREEITEM& packetNode);
+	afx_msg int printIGMP2TreeCtrl(const packet& pkt, HTREEITEM& packetNode);
 	afx_msg int printTCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	afx_msg int printUDP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	afx_msg int printDNS2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);

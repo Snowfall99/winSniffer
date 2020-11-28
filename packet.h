@@ -7,6 +7,7 @@ public:
 	IP_Header		*ip_header;						// IP首部
 	ARP_Header		*arp_header;					// ARP首部
 	ICMP_Header		*icmp_header;					// ICMP首部
+	IGMP_Header		*igmp_header;					// IGMP首部
 	TCP_Header		*tcp_header;					// TCP首部
 	UDP_Header		*udp_header;					// UDP首部
 	DNS_Header		*dns_header;					// DNS首部
@@ -30,6 +31,7 @@ public:
 	int decodeIP(u_char *L2Payload);
 	int decodeARP(u_char* L2Payload);
 	int decodeICMP(u_char* L3Payload);
+	int decodeIGMP(u_char* L3PayLoad);
 	int decodeTCP(u_char *L3Payload);
 	int decodeUDP(u_char *L3Payload);
 	int decodeDNS(u_char* L4Payload);
