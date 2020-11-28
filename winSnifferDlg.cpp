@@ -453,7 +453,6 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool) {
 	}
 
 	int pktNum = pool.getSize();
-	AfxMessageBox(_T("%d"), pktNum);
 	for (int i = 1; i <= pktNum; i++) {
 		printListCtrlPacketList(pool.get(i));
 	}
@@ -659,6 +658,9 @@ int CwinSnifferDlg::printIP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode) {
 	
 	if (pkt.icmp_header != NULL) {
 		printICMP2TreeCtrl(pkt, parentNode);
+	}
+	else if (pkt.igmp_header != NULL) {
+		printIGMP2TreeCtrl(pkt, parentNode);
 	}
 	else if (pkt.tcp_header != NULL)
 	{
@@ -894,6 +896,33 @@ int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 
 		break;
 	}
+	return 0;
+}
+
+int CwinSnifferDlg::printIGMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
+{
+	if (pkt.isEmpty() || pkt.igmp_header == NULL || parentNode == NULL)
+		return -1;
+
+	HTREEITEM IGMPNode;
+	CString strText, strTmp;
+
+	strText = "IGMP";
+	strTmp.Format(_T("(%d)"), pkt.igmp_header->type);
+	strText += strTmp;
+	IGMPNode = m_treeCtrlPacketDetails.InsertItem(strText, parentNode, 0);
+
+	IP_Address addr = *(IP_Address*)&(pkt.igmp_header->group_addr);
+
+	strText.Format(_T("最大响应时延： %d"), pkt.igmp_header->max_resp);
+	m_treeCtrlPacketDetails.InsertItem(strText, IGMPNode, 0);
+
+	strText.Format(_T("校验和：0x%04hx"), ntohs(pkt.igmp_header->checksum));
+	m_treeCtrlPacketDetails.InsertItem(strText, IGMPNode, 0);
+
+	strText = _T("组地址：") + IPAddr2CString(addr);
+	m_treeCtrlPacketDetails.InsertItem(strText, IGMPNode, 0);
+
 	return 0;
 }
 
@@ -1461,6 +1490,10 @@ void CwinSnifferDlg::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 			else if (*pStrPktProtocol == "ICMP")
 			{
 				itemColor = RGB(186, 85, 211);	// 紫色
+			}
+			else if (*pStrPktProtocol == "IGMP")
+			{
+				itemColor = RGB(221, 121, 7);
 			}
 			else if (*pStrPktProtocol == "TCP")
 			{

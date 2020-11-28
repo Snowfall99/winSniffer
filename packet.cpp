@@ -8,6 +8,7 @@ packet::packet() {
 	ip_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
+	igmp_header = NULL;
 	udp_header = NULL;
 	tcp_header = NULL;
 	dns_header = NULL;
@@ -24,6 +25,7 @@ packet::packet(const packet& p) {
 	ip_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
+	igmp_header = NULL;
 	udp_header = NULL;
 	tcp_header = NULL;
 	dns_header = NULL;
@@ -55,6 +57,7 @@ packet::packet(const struct pcap_pkthdr* header, const u_char* pkt_data, const u
 	ip_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
+	igmp_header = NULL;
 	udp_header = NULL;
 	tcp_header = NULL;
 	dns_header = NULL;
@@ -85,6 +88,7 @@ packet& packet::operator=(const packet& p) {
 	ip_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
+	igmp_header = NULL;
 	udp_header = NULL;
 	tcp_header = NULL;
 	dns_header = NULL;
@@ -119,6 +123,7 @@ packet::~packet() {
 	ip_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
+	igmp_header = NULL;
 	tcp_header = NULL;
 	udp_header = NULL;
 	dns_header = NULL;
@@ -175,6 +180,9 @@ int packet::decodeIP(u_char* L2Payload) {
 	case PROTOCOL_ICMP:
 		decodeICMP(L2Payload + IPHeaderLen);
 		break;
+	case PROTOCOL_IGMP:
+		decodeIGMP(L2Payload + IPHeaderLen);
+		break;
 	case PROTOCOL_TCP:
 		decodeTCP(L2Payload + IPHeaderLen);
 		break;
@@ -205,6 +213,16 @@ int packet::decodeICMP(u_char* L3Payload) {
 
 	protocol = "ICMP";
 	icmp_header = (ICMP_Header*)(L3Payload);
+	return 0;
+}
+
+int packet::decodeIGMP(u_char* L3Payload) {
+	if (L3Payload == NULL) {
+		return -1;
+	}
+
+	protocol = "IGMP";
+	igmp_header = (IGMP_Header*)(L3Payload);
 	return 0;
 }
 
