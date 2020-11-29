@@ -41,6 +41,12 @@ protected:
 	packetCatcher m_catcher;
 	packetPool m_pool;
 
+	/* 源\目的地址 */
+	CString ip_src_addr;
+	CString ip_dst_addr;
+	CString mac_src_addr;
+	CString mac_dst_addr;
+
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
@@ -59,12 +65,13 @@ public:
 	CTreeCtrl m_treeCtrlPacketDetails;
 	afx_msg void initialListCtrlPacketList();
 	afx_msg void initialBtns();
+	afx_msg void initialEditCtrl();
 	afx_msg void initialTreeCtrlPacketDetails();
 	afx_msg void initialDevList();
 	afx_msg void initialFilterList();
 	afx_msg int printListCtrlPacketList(const packet &pkt);
 	afx_msg int printListCtrlPacketList(packetPool& pool);
-	afx_msg int printListCtrlPacketList(packetPool& pool, const CString filter);
+	afx_msg int printListCtrlPacketList(packetPool& pool, const CString filter, const CString ip_src, const CString ip_dst, const CString mac_src, const CString mac_dst);
 	afx_msg CString MACAddr2CString(const MAC_Address& addr);
 	afx_msg CString IPAddr2CString(const IP_Address& addr);
 	afx_msg int printTreeCtrlPacketDetails(const packet &pkt);
@@ -85,4 +92,8 @@ public:
 	afx_msg void OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnClickedFilterButton();
 	CButton m_filter_btn;
+	CString m_src_edit;
+	CString m_dst_edit;
+	CString m_mac_src;
+	CString m_mac_dst;
 };

@@ -14,6 +14,7 @@
 #define IDC_END_BUTTON                  1002
 #define IDC_START_BUTTON                1003
 #define IDC_FILTER_BUTTON               1004
+#define IDC_END_BUTTON2                 1004
 #define IDC_LIST1                       1006
 #define IDC_LIST                        1006
 #define IDC_PACKET_LIST                 1006
@@ -22,9 +23,11 @@
 #define IDC_SAVE_BUTTON                 1008
 #define IDC_EDIT1                       1009
 #define IDC_EDIT2                       1010
+#define IDC_SRC_EDIT                    1010
 #define IDC_EDIT3                       1011
-#define IDC_EDIT4                       1012
-#define IDC_EDIT5                       1013
+#define IDC_DST_EDIT                    1011
+#define IDC_MAC_SRC                     1012
+#define IDC_MAC_DST                     1013
 #define IDC_EDIT6                       1014
 #define IDC_EDIT7                       1015
 #define IDC_EDIT8                       1016
