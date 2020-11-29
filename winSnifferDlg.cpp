@@ -96,6 +96,10 @@ END_MESSAGE_MAP()
 
 CwinSnifferDlg::CwinSnifferDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_WINSNIFFER_DIALOG, pParent)
+	, m_src_edit(_T(""))
+	, m_dst_edit(_T(""))
+	, m_mac_src(_T(""))
+	, m_mac_dst(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_catcher.setPool(&m_pool);			// catcher 初始化
@@ -113,6 +117,10 @@ void CwinSnifferDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO_FILTERLIST, m_comboBoxFilterList);
 	DDX_Control(pDX, IDC_TREE1, m_treeCtrlPacketDetails);
 	DDX_Control(pDX, IDC_EDIT1, m_editorCtrlPacketBytes);
+	DDX_Text(pDX, IDC_SRC_EDIT, m_src_edit);
+	DDX_Text(pDX, IDC_DST_EDIT, m_dst_edit);
+	DDX_Text(pDX, IDC_MAC_SRC, m_mac_src);
+	DDX_Text(pDX, IDC_MAC_DST, m_mac_dst);
 }
 
 BEGIN_MESSAGE_MAP(CwinSnifferDlg, CDialogEx)
@@ -167,6 +175,7 @@ BOOL CwinSnifferDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	initialBtns();
+	initialEditCtrl();
 	initialDevList();
 	initialFilterList();
 	initialListCtrlPacketList();
@@ -281,11 +290,17 @@ void CwinSnifferDlg::OnClickedFilterButton()
 	CString strFilter;
 	m_comboBoxFilterList.GetLBText(selIndex, strFilter);
 
+	UpdateData(true);
+	ip_src_addr = m_src_edit.GetString();
+	ip_dst_addr = m_dst_edit.GetString();
+	mac_src_addr = m_mac_src.GetString();
+	mac_dst_addr = m_mac_dst.GetString();
+
 	m_listCtrlPacketList.DeleteAllItems();
 	m_treeCtrlPacketDetails.DeleteAllItems();
 	m_editorCtrlPacketBytes.SetWindowText(_T(""));
 
-	printListCtrlPacketList(m_pool, strFilter);
+	printListCtrlPacketList(m_pool, strFilter, ip_src_addr, ip_dst_addr, mac_src_addr, mac_dst_addr);
 }
 
 
@@ -391,6 +406,14 @@ void CwinSnifferDlg::initialListCtrlPacketList()
 
 }
 
+void CwinSnifferDlg::initialEditCtrl()
+{
+	GetDlgItem(IDC_MAC_SRC)->SetWindowTextW(_T("All"));
+	GetDlgItem(IDC_MAC_DST)->SetWindowTextW(_T("All"));
+	GetDlgItem(IDC_SRC_EDIT)->SetWindowTextW(_T("All"));
+	GetDlgItem(IDC_DST_EDIT)->SetWindowTextW(_T("All"));
+	UpdateData(true);
+}
 
 /* 树形控件初始化 */
 void CwinSnifferDlg::initialTreeCtrlPacketDetails()
@@ -489,28 +512,376 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool) {
 	return pktNum;
 }
 
-int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, const CString filter) {
+int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, const CString filter, const CString ip_src, const CString ip_dst, const CString mac_src, const CString mac_dst) {
 	if (pool.isEmpty() || filter.IsEmpty()) {
 		return -1;
 	}
 
 	int pktNum = pool.getSize();
 	int filterPktNum = 0;
-	for (int i = 0; i < pktNum; ++i)
-	{
-		const packet& pkt = pool.get(i); 
-		if (pkt.protocol == filter)
+	if (ip_src == "All" && ip_dst == "All" && mac_src == "All" && mac_dst == "All") {
+		for (int i = 0; i < pktNum; ++i)
 		{
-			printListCtrlPacketList(pkt);
-			++filterPktNum;
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter)
+			{
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			printListCtrlPacketList(pool);
+		}
+
+		return filterPktNum;
+	}
+	else if (ip_src == "All" && mac_src == "All" && mac_dst == "All") {
+		if (filter == "TCP") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		} 
+		else if (filter == "UDP") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		else if (filter == "IP") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		else if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.ip_header != nullptr && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		return filterPktNum;
+	}
+	else if (ip_dst == "All" && mac_src == "All" && mac_dst == "All") {
+		if (filter == "TCP") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		else if (filter == "UDP") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		else if (filter == "IP") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		else if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.ip_header != nullptr && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		return filterPktNum;
+	}
+	else if (ip_src == "All" && ip_dst == "All" && mac_src == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
 		}
 	}
+	else if (ip_src == "All" && ip_dst == "All" && mac_dst == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr  && MACAddr2CString(pkt.eth_header->src) == mac_src) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
 
-	if (filter == "ALL") {
-		printListCtrlPacketList(pool);
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
 	}
+	else if (mac_src == "All" && mac_dst == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->src) == ip_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
 
-	/* TODO: 不能重新显示全部数据包*/
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (IPAddr2CString(pkt.ip_header->src) == ip_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else if (ip_src == "All" && mac_dst == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else if (ip_src == "All" && mac_src == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else if (ip_dst == "All" && mac_dst == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else if (ip_dst == "All" && mac_src == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else if (ip_src == "All" && ip_dst == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else if (ip_src == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else if (ip_dst == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else if (mac_src == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && IPAddr2CString(pkt.ip_header->src) == ip_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && IPAddr2CString(pkt.ip_header->src) == ip_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else if (mac_dst == "All") {
+		for (int i = 0; i < pktNum; ++i) {
+			const packet& pkt = pool.get(i);
+			if (pkt.protocol == filter && pkt.eth_header != nullptr && IPAddr2CString(pkt.ip_header->src) == ip_src && MACAddr2CString(pkt.eth_header->src) == mac_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+				printListCtrlPacketList(pkt);
+				++filterPktNum;
+			}
+		}
+
+		if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.eth_header != nullptr && IPAddr2CString(pkt.ip_header->src) == ip_src && MACAddr2CString(pkt.eth_header->src) == mac_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+	}
+	else {
+		if (filter == "TCP") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == filter && pkt.eth_header != nullptr && IPAddr2CString(pkt.ip_header->src) == ip_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		else if (filter == "UDP") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == filter && pkt.eth_header != nullptr && IPAddr2CString(pkt.ip_header->src) == ip_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		else if (filter == "IP") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->src) == ip_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		else if (filter == "ALL") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.ip_header != nullptr && pkt.eth_header != nullptr && IPAddr2CString(pkt.ip_header->src) == ip_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		return filterPktNum;
+	}
+	
 	return filterPktNum;
 }
 
@@ -1506,10 +1877,12 @@ CString CwinSnifferDlg::MACAddr2CString(const MAC_Address& addr) {
 CString CwinSnifferDlg::IPAddr2CString(const IP_Address& addr) {
 	CString strAddr, strTmp;
 
-	for (int i = 0; i < 4; i++) {
-		strTmp.Format(_T("% d"), addr.bytes[i]);
+	for (int i = 0; i < 3; i++) {
+		strTmp.Format(_T("%d"), addr.bytes[i]);
 		strAddr += strTmp + _T(".");
 	}
+	strTmp.Format(_T("%d"), addr.bytes[3]);
+	strAddr += strTmp;
 
 	return strAddr;
 }
@@ -1579,3 +1952,4 @@ void CwinSnifferDlg::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 		*pResult = CDRF_DODEFAULT;
 	}
 }
+
