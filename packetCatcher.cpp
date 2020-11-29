@@ -34,7 +34,7 @@ bool packetCatcher::setPool(packetPool* pool) {
 }
 
 bool packetCatcher::openAdapter(int setitemindexofdevlist, const CTime& currenttime) {
-	if (setitemindexofdevlist < 0 || m_adhandle) {
+	if (setitemindexofdevlist < 0) {
 		return false;
 	}
 	int count = 0, setdevindex = setitemindexofdevlist - 1;

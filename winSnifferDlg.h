@@ -54,17 +54,17 @@ public:
 	afx_msg void OnBnClickedEndButton();
 
 	CComboBox m_comboBoxDevList;
-	afx_msg void initialComboDevList();
 	CComboBox m_comboBoxFilterList;
-	afx_msg void initialComboFilterlist();
 	CListCtrl m_listCtrlPacketList;
-	afx_msg void initialListCtrlPacketList();
 	CTreeCtrl m_treeCtrlPacketDetails;
+	afx_msg void initialListCtrlPacketList();
+	afx_msg void initialBtns();
 	afx_msg void initialTreeCtrlPacketDetails();
 	afx_msg void initialDevList();
 	afx_msg void initialFilterList();
 	afx_msg int printListCtrlPacketList(const packet &pkt);
 	afx_msg int printListCtrlPacketList(packetPool& pool);
+	afx_msg int printListCtrlPacketList(packetPool& pool, const CString filter);
 	afx_msg CString MACAddr2CString(const MAC_Address& addr);
 	afx_msg CString IPAddr2CString(const IP_Address& addr);
 	afx_msg int printTreeCtrlPacketDetails(const packet &pkt);
@@ -83,4 +83,6 @@ public:
 	afx_msg int printEditCtrlPacketBytes(const packet& pkt);
 	afx_msg void onClickedList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnClickedFilterButton();
+	CButton m_filter_btn;
 };

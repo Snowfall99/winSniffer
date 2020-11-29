@@ -74,7 +74,6 @@ public:
 protected:
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void initialComboBoxDevList();
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
@@ -122,6 +121,7 @@ BEGIN_MESSAGE_MAP(CwinSnifferDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_START_BUTTON, &CwinSnifferDlg::OnBnClickedStartButton)
 	ON_BN_CLICKED(IDC_END_BUTTON, &CwinSnifferDlg::OnBnClickedEndButton)
+	ON_BN_CLICKED(IDC_FILTER_BUTTON, &CwinSnifferDlg::OnClickedFilterButton)
 	// ON_NOTIFY(LVN_ITEMCHANGED, IDC_PACKET_LIST, &CwinSnifferDlg::initialListCtrlPacketList)
 	// ON_NOTIFY(TVN_SELCHANGED, IDC_TREE1, &CwinSnifferDlg::initialTreeCtrlPacketDetails)
 	ON_CBN_EDITUPDATE(IDC_COMBO_DEVLIST, &CwinSnifferDlg::initialDevList)
@@ -166,6 +166,7 @@ BOOL CwinSnifferDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+	initialBtns();
 	initialDevList();
 	initialFilterList();
 	initialListCtrlPacketList();
@@ -246,6 +247,7 @@ void CwinSnifferDlg::OnBnClickedStartButton()
 		AfxMessageBox(_T("Start Catching..."));
 		GetDlgItem(IDC_START_BUTTON)->EnableWindow(FALSE);
 		GetDlgItem(IDC_END_BUTTON)->EnableWindow(TRUE);
+		GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(FALSE);
 
 		m_listCtrlPacketList.DeleteAllItems();
 		m_treeCtrlPacketDetails.DeleteAllItems();
@@ -262,6 +264,7 @@ void CwinSnifferDlg::OnBnClickedEndButton()
 	// TODO: 在此添加控件通知处理程序代码
 	GetDlgItem(IDC_START_BUTTON)->EnableWindow(TRUE);
 	GetDlgItem(IDC_END_BUTTON)->EnableWindow(FALSE);
+	GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(TRUE);
 	AfxMessageBox(_T("End Catching..."), MB_OK);
 	m_catcher.stopCapture();
 	m_pktCaptureFlag = false;
@@ -269,11 +272,33 @@ void CwinSnifferDlg::OnBnClickedEndButton()
 	printListCtrlPacketList(m_pool);
 }
 
+void CwinSnifferDlg::OnClickedFilterButton()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	int selIndex = m_comboBoxFilterList.GetCurSel();
+	if (selIndex < 0)
+		return;
+	CString strFilter;
+	m_comboBoxFilterList.GetLBText(selIndex, strFilter);
+
+	m_listCtrlPacketList.DeleteAllItems();
+	m_treeCtrlPacketDetails.DeleteAllItems();
+	m_editorCtrlPacketBytes.SetWindowText(_T(""));
+
+	printListCtrlPacketList(m_pool, strFilter);
+}
+
 
 /********************************
 * 控件初始化
 * *******************************/
 
+void CwinSnifferDlg::initialBtns()
+{
+	GetDlgItem(IDC_START_BUTTON)->EnableWindow(TRUE);
+	GetDlgItem(IDC_END_BUTTON)->EnableWindow(FALSE);
+	GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(FALSE);
+}
 
 void CwinSnifferDlg::initialDevList()
 {
@@ -311,17 +336,21 @@ void CwinSnifferDlg::initialFilterList()
 	std::vector<CString> filterList;
 	filterList.push_back(_T("Ethernet"));
 	filterList.push_back(_T("IP"));
+	filterList.push_back(_T("ARP"));
+	filterList.push_back(_T("ICMP"));
+	filterList.push_back(_T("IGMP"));
 	filterList.push_back(_T("TCP"));
 	filterList.push_back(_T("UDP"));
 	filterList.push_back(_T("HTTP"));
+	filterList.push_back(_T("DHCP"));
 
 	CString str;
-	str.Format(_T("Choose filter(optional)"));
+	str.Format(_T("ALL"));
 	m_comboBoxFilterList.AddString(str);
 	m_comboBoxFilterList.SetCurSel(0);
 
 	for (int i = 0; i < filterList.size(); i++) {
-		m_comboBoxFilterList.AddString(LPCTSTR(filterList[i]));
+		m_comboBoxFilterList.AddString(filterList[i]);
 	}
 }
 
@@ -369,7 +398,7 @@ void CwinSnifferDlg::initialTreeCtrlPacketDetails()
 	CRect rect, winRect;
 	m_listCtrlPacketList.GetWindowRect(&rect);
 	ScreenToClient(&rect);
-	GetDlgItem(IDC_TREE1)->SetWindowPos(NULL, rect.left, rect.bottom + 5, rect.Width() * 0.2, rect.Height() + 125, SWP_NOZORDER);
+	GetDlgItem(IDC_TREE1)->SetWindowPos(NULL, rect.left, rect.bottom + 5, rect.Width() * 0.3, rect.Height() + 125, SWP_NOZORDER);
 }
 
 /* 数据包字节流显示窗初始化 */
@@ -458,6 +487,31 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool) {
 	}
 
 	return pktNum;
+}
+
+int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, const CString filter) {
+	if (pool.isEmpty() || filter.IsEmpty()) {
+		return -1;
+	}
+
+	int pktNum = pool.getSize();
+	int filterPktNum = 0;
+	for (int i = 0; i < pktNum; ++i)
+	{
+		const packet& pkt = pool.get(i); 
+		if (pkt.protocol == filter)
+		{
+			printListCtrlPacketList(pkt);
+			++filterPktNum;
+		}
+	}
+
+	if (filter == "ALL") {
+		printListCtrlPacketList(pool);
+	}
+
+	/* TODO: 不能重新显示全部数据包*/
+	return filterPktNum;
 }
 
 int CwinSnifferDlg::printEditCtrlPacketBytes(const packet& pkt) {
@@ -581,9 +635,9 @@ int CwinSnifferDlg::printEthernet2TreeCtrl(const packet& pkt, HTREEITEM& parentN
 
 	HTREEITEM EthNode = m_treeCtrlPacketDetails.InsertItem(_T("Internet (") + strSrcMAC + _T(" -> ") + strDstMAC + _T("）"), parentNode, 0);
 
-	m_treeCtrlPacketDetails.InsertItem(_T("DST MAC address:") + strDstMAC, EthNode, 0);
-	m_treeCtrlPacketDetails.InsertItem(_T("SRC MAC address：") + strSrcMAC, EthNode, 0);
-	m_treeCtrlPacketDetails.InsertItem(_T("Type:") + strEthType, EthNode, 0);
+	m_treeCtrlPacketDetails.InsertItem(_T("目的MAC地址：") + strDstMAC, EthNode, 0);
+	m_treeCtrlPacketDetails.InsertItem(_T("源MAC地址：") + strSrcMAC, EthNode, 0);
+	m_treeCtrlPacketDetails.InsertItem(_T("类型：") + strEthType, EthNode, 0);
 
 	if (pkt.ip_header != NULL)
 	{
@@ -703,9 +757,9 @@ int CwinSnifferDlg::printARP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 
 	switch (ntohs(pkt.arp_header->opcode))
 	{
-	case ARP_OPCODE_REQUEST:	strText = _T("OP码：请求（%hu）") + ntohs(pkt.arp_header->opcode); break;
-	case ARP_OPCODE_REPLY:		strText.Format(_T("OP码：响应（%hu）"), ntohs(pkt.arp_header->opcode));	break;
-	default:					strText.Format(_T("OP码：未知（%hu）"), ntohs(pkt.arp_header->opcode));	break;
+	case ARP_OPCODE_REQUEST:	strText.Format(_T("操作码：请求（%hu）"), ntohs(pkt.arp_header->opcode));		break;
+	case ARP_OPCODE_REPLY:		strText.Format(_T("操作码：响应（%hu）"), ntohs(pkt.arp_header->opcode));		break;
+	default:					strText.Format(_T("操作码：未知（%hu）"), ntohs(pkt.arp_header->opcode));		break;
 	}
 	m_treeCtrlPacketDetails.InsertItem(strText, ARPNode, 0);
 
