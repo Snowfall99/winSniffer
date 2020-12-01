@@ -15,6 +15,7 @@
 #define IDC_START_BUTTON                1003
 #define IDC_FILTER_BUTTON               1004
 #define IDC_END_BUTTON2                 1004
+#define IDC_END_BUTTON3                 1005
 #define IDC_LIST1                       1006
 #define IDC_LIST                        1006
 #define IDC_PACKET_LIST                 1006
