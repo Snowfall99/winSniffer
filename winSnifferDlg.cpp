@@ -139,6 +139,7 @@ BEGIN_MESSAGE_MAP(CwinSnifferDlg, CDialogEx)
 	ON_EN_CHANGE(IDC_EDIT1, &CwinSnifferDlg::initialEditCtrlPacketBytes)
 	ON_NOTIFY(NM_CLICK, IDC_PACKET_LIST, &CwinSnifferDlg::onClickedList)
 	ON_NOTIFY(NM_CUSTOMDRAW, IDC_PACKET_LIST, &CwinSnifferDlg::OnCustomDrawList)
+	ON_BN_CLICKED(IDC_SAVE_BUTTON, &CwinSnifferDlg::OnBnClickedSaveButton)
 END_MESSAGE_MAP()
 
 
@@ -279,6 +280,169 @@ void CwinSnifferDlg::OnBnClickedEndButton()
 	m_pktCaptureFlag = false;
 
 	printListCtrlPacketList(m_pool);
+}
+
+void CwinSnifferDlg::OnBnClickedSaveButton()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	int selectedItemIndex = m_listCtrlPacketList.GetSelectionMark();
+
+	CString strPktNum = m_listCtrlPacketList.GetItemText(selectedItemIndex, 0);
+	int pktNum = _ttoi(strPktNum);
+	if (pktNum < 1 || pktNum > m_pool.getSize())
+		return;
+
+	const packet& pkt = m_pool.get(pktNum);
+	
+	if (pkt.isEmpty()) {
+		AfxMessageBox(_T("Packet is empty"));
+		return;
+	}
+
+	CTime pktArrivalTime((time_t)(pkt.header->ts.tv_sec));
+	CString strPktArrivalTime = pktArrivalTime.Format("%Y/%m/%d %H:%M:%S");
+	CString strTime = pktArrivalTime.Format("%Y_%m_%d_%H_%M_%S_");
+	CString file = _T("packet.txt");
+	CString path = _T(".\\tmp\\") + strTime + file;
+
+	CStdioFile saveFile;
+	CFileException fileException;
+
+	saveFile.Open(path, CFile::modeCreate | CFile::typeText | CFile::modeReadWrite, & fileException); 
+	if (fileException.m_cause != 0) {
+		TRACE("Can't open file %s, error = %u\n", path, fileException.m_cause);
+	}
+	saveFile.WriteString(_T("Arrival time:") + strPktArrivalTime + _T("\n"));
+
+	CString strText;
+	strText.Format(_T("No.%d, (%hu bytes in total, capture %hu bytes)\n"), pkt.num, pkt.header->len, pkt.header->caplen);
+	saveFile.WriteString(strText);
+	saveFile.WriteString(_T("\n"));
+
+	if (pkt.eth_header != NULL) {
+		CString strSrcMAC = MACAddr2CString(pkt.eth_header->src);
+		CString	strDstMAC = MACAddr2CString(pkt.eth_header->dst);
+		CString strEthType;
+		strEthType.Format(_T("0x%04X"), ntohs(pkt.eth_header->eth_type));
+
+		saveFile.WriteString(_T("Internet: " + strSrcMAC + "->" + strDstMAC + ")\n"));
+		saveFile.WriteString(_T("Destination MAC address: " + strDstMAC + _T("\n")));
+		saveFile.WriteString(_T("Source MAC address: " + strSrcMAC + _T("\n")));
+		saveFile.WriteString(_T("Type: ") + strEthType + _T("\n"));
+		saveFile.WriteString(_T("\n"));
+
+		if (pkt.ip_header != NULL) {
+			strText.Format(_T("IP (") + IPAddr2CString(pkt.ip_header->src) + "->" + IPAddr2CString(pkt.ip_header->dst) + ")\n");
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Version: %d\n"), pkt.ip_header->ver_headerLen >> 4);
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Header Length: %d bytes\n"), pkt.getIPHeaderLength());
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Tos: 0x%02X\n"), pkt.ip_header->service);
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Total length: %hu\n"), ntohs(pkt.ip_header->total_len));
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Identifier: 0x%04hX (%hu)\n"), ntohs(pkt.ip_header->identifier), ntohs(pkt.ip_header->identifier));
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Flag: 0x%02X\n"), pkt.getIPFlags());
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("RSV: 0\n"));
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("DF: %d\n"), pkt.getIPFlagDF());
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("MF: %d\n"), pkt.getIPFlagsMF());
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Offset: %d\n"), pkt.getIPOffset());
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("TTL: %u"), pkt.ip_header->ttl);
+			saveFile.WriteString(strText);
+
+			switch (pkt.ip_header->protocol)
+			{
+			case PROTOCOL_ICMP:	strText = "Protocol：ICMP(1)\n";	break;
+			case PROTOCOL_TCP:	strText = "Protocol：TCP(6)\n";	break;
+			case PROTOCOL_UDP:	strText = "Protocol：UDP(17)\n";	break;
+			default:			strText.Format(_T("Protocol: unknown(%d)\n"), pkt.ip_header->protocol);	break;
+			}
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Checksum:0x%02hX\n"), ntohs(pkt.ip_header->checksum));
+			saveFile.WriteString(strText);
+
+			strText = _T("Source IP address: ") + IPAddr2CString(pkt.ip_header->src) + _T("\n");
+			saveFile.WriteString(strText);
+
+			strText = _T("Destination IP address: ") + IPAddr2CString(pkt.ip_header->dst) + _T("\n");
+			saveFile.WriteString(strText);
+
+			saveFile.WriteString(_T("\n"));
+
+			if (pkt.tcp_header != NULL) {
+
+			}
+			else if (pkt.udp_header != NULL) {
+
+			}
+			else if (pkt.icmp_header != NULL) {
+
+			}
+		}	
+		else if (pkt.arp_header != NULL) {
+			switch (ntohs(pkt.arp_header->opcode))
+			{
+			case ARP_OPCODE_REQUEST:	strText.Format(_T("ARP(REQUEST)\n"));	break;
+			case ARP_OPCODE_REPLY:	strText.Format(_T("ARP(REPLY)\n"));			break;
+			default:				strText.Format(_T("ARP\n"));				break;
+			}
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Hardware type: %hu\n"), ntohs(pkt.arp_header->hw_type));
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Protocol type: 0x%04hx (%hu)\n"), ntohs(pkt.arp_header->protocol_type), ntohs(pkt.arp_header->protocol_type));
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Hardware address length: %u\n"), pkt.arp_header->hw_len);
+			saveFile.WriteString(strText);
+
+			strText.Format(_T("Protocol address length: %u\n"), pkt.arp_header->protocol_len);
+			saveFile.WriteString(strText);
+
+			switch (ntohs(pkt.arp_header->opcode))
+			{
+			case ARP_OPCODE_REQUEST:	strText.Format(_T("Opcode: REQUEST(%hu)\n"), ntohs(pkt.arp_header->opcode));	break;
+			case ARP_OPCODE_REPLY:	strText.Format(_T("Opcode: REPLY(%hu)"), ntohs(pkt.arp_header->opcode));	break;
+			default:				strText.Format(_T("Opcode: unknown(%hu)\n"), ntohs(pkt.arp_header->opcode));	break;
+			}
+
+			strText = _T("Source MAC address: ") + MACAddr2CString(pkt.arp_header->src_mac) + _T("\n");
+			saveFile.WriteString(strText);
+
+			strText = _T("Destination MAC address: ") + MACAddr2CString(pkt.arp_header->dst_mac) + _T("\n");
+			saveFile.WriteString(strText);
+
+			strText = _T("Source IP address: ") + IPAddr2CString(pkt.arp_header->src_ip) + _T("\n");
+			saveFile.WriteString(strText);
+
+			strText = _T("Destination IP address: ") + IPAddr2CString(pkt.arp_header->dst_ip) + _T("\n");
+			saveFile.WriteString(strText);
+
+			saveFile.WriteString(_T("\n"));
+		}
+	}
+
+	saveFile.Close();
 }
 
 void CwinSnifferDlg::OnClickedFilterButton()
@@ -1952,4 +2116,5 @@ void CwinSnifferDlg::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 		*pResult = CDRF_DODEFAULT;
 	}
 }
+
 

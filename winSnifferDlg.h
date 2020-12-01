@@ -54,10 +54,9 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnEnChangeEdit3();
-	afx_msg void OnEnChangeEdit5();
 	afx_msg void OnBnClickedStartButton();
 	afx_msg void OnBnClickedEndButton();
+	afx_msg void OnBnClickedSaveButton();
 
 	CComboBox m_comboBoxDevList;
 	CComboBox m_comboBoxFilterList;
