@@ -389,10 +389,73 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 			saveFile.WriteString(_T("\n"));
 
 			if (pkt.tcp_header != NULL) {
+				strText.Format(_T("TCP (%hu -> %hu)\n"), ntohs(pkt.tcp_header->src), ntohs(pkt.tcp_header->dst));
+				saveFile.WriteString(strText);
 
+				strText.Format(_T("Source port: %hu\n"), ntohs(pkt.tcp_header->src));
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Destination port: %hu\n"), ntohs(pkt.tcp_header->dst));
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("SEQ: 0x%01X\n"), ntohl(pkt.tcp_header->seq));
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("ACK: 0x%01X\n"), ntohl(pkt.tcp_header->ack));
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Header length: %d bytes\n"), pkt.getIPHeaderLength());
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Flag: 0x%03X\n"), pkt.getTCPFlags());
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("URG: %d\n"), pkt.getTCPFlagsURG());
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("ACK：%d\n"), pkt.getTCPFlagsACK());
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("PSH：%d\n"), pkt.getTCPFlagsPSH());
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("RST：%d\n"), pkt.getTCPFlagsRST());
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("SYN：%d\n"), pkt.getTCPFlagsSYN());
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("FIN：%d\n"), pkt.getTCPFlagsFIN());
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Window size: %hu\n"), ntohs(pkt.tcp_header->win_size));
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.tcp_header->checksum));
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Urg_ptr: %hu"), ntohs(pkt.tcp_header->urg_ptr));
+				saveFile.WriteString(strText);
+
+				saveFile.WriteString(_T("\n"));
 			}
 			else if (pkt.udp_header != NULL) {
+				strText.Format(_T("UDP (%hu -> %hu)\n"), ntohs(pkt.udp_header->src), ntohs(pkt.udp_header->dst));
+				saveFile.WriteString(strText);
 
+				strText.Format(_T("Source port: %hu\n"), ntohs(pkt.udp_header->src));
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Destination port: %hu\n"), ntohs(pkt.udp_header->dst));
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Length: %hu\n"), ntohs(pkt.udp_header->len));
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.udp_header->checksum));
+				saveFile.WriteString(strText);
+
+				saveFile.WriteString(_T("\n"));
 			}
 			else if (pkt.icmp_header != NULL) {
 
