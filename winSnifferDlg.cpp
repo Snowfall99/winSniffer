@@ -413,19 +413,19 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 				strText.Format(_T("URG: %d\n"), pkt.getTCPFlagsURG());
 				saveFile.WriteString(strText);
 
-				strText.Format(_T("ACK：%d\n"), pkt.getTCPFlagsACK());
+				strText.Format(_T("ACK: %d\n"), pkt.getTCPFlagsACK());
 				saveFile.WriteString(strText);
 
-				strText.Format(_T("PSH：%d\n"), pkt.getTCPFlagsPSH());
+				strText.Format(_T("PSH: %d\n"), pkt.getTCPFlagsPSH());
 				saveFile.WriteString(strText);
 
-				strText.Format(_T("RST：%d\n"), pkt.getTCPFlagsRST());
+				strText.Format(_T("RST: %d\n"), pkt.getTCPFlagsRST());
 				saveFile.WriteString(strText);
 
-				strText.Format(_T("SYN：%d\n"), pkt.getTCPFlagsSYN());
+				strText.Format(_T("SYN: %d\n"), pkt.getTCPFlagsSYN());
 				saveFile.WriteString(strText);
 
-				strText.Format(_T("FIN：%d\n"), pkt.getTCPFlagsFIN());
+				strText.Format(_T("FIN: %d\n"), pkt.getTCPFlagsFIN());
 				saveFile.WriteString(strText);
 
 				strText.Format(_T("Window size: %hu\n"), ntohs(pkt.tcp_header->win_size));
@@ -458,7 +458,166 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 				saveFile.WriteString(_T("\n"));
 			}
 			else if (pkt.icmp_header != NULL) {
+				switch (pkt.icmp_header->type)
+				{
+				case ICMP_TYPE_ECHO_REPLY:					strText = "(ECHO REPLY)\n";				break;
+				case ICMP_TYPE_DESTINATION_UNREACHABLE:		strText = "(DESTINATION UNREACHABLE)\n";break;
+				case ICMP_TYPE_SOURCE_QUENCH:				strText = "(SOURCE QUENCH)\n";			break;
+				case ICMP_TYPE_REDIRECT:					strText = "(REDIRECT)\n";				break;
+				case ICMP_TYPE_ECHO:						strText = "(ECHO)\n";					break;
+				case ICMP_TYPE_ROUTER_ADVERTISEMENT:		strText = "(ROUTER ADVERTISEMENT)\n";	break;
+				case ICMP_TYPE_ROUTER_SOLICITATION:			strText = "(ROUTER SOLICITATION)\n";	break;
+				case ICMP_TYPE_TIME_EXCEEDED:				strText = "(TIME EXCEEDED)\n";			break;
+				case ICMP_TYPE_PARAMETER_PROBLEM:			strText = "(PARAMETER PROBLEM)\n";		break;
+				case ICMP_TYPE_TIMESTAMP:					strText = "(TIMESTAMP)\n";				break;
+				case ICMP_TYPE_TIMESTAMP_REPLY:				strText = "(TIMESTAMP REPLY)\n";		break;
+				default:									strText.Format(_T("(UNKNOWN)\n"));		break;
+				}
+				saveFile.WriteString(strText);
 
+				IP_Address addr = *(IP_Address*)&(pkt.icmp_header->others);
+				u_short id = pkt.getICMPID();
+				u_short seq = pkt.getICMPSeq();
+
+				strText.Format(_T("Type: %u\n"), pkt.icmp_header->type);
+				saveFile.WriteString(strText);
+
+				switch (pkt.icmp_header->type) {
+				case ICMP_TYPE_ECHO_REPLY:
+				{
+					strText = "Code: 0\n";
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Identifier: %hu\n"), id);
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Seq: %hu\n"), seq);
+					saveFile.WriteString(strText);
+					break;
+				}
+				case ICMP_TYPE_DESTINATION_UNREACHABLE:
+				{
+					strText = "Code: ";
+					switch (pkt.icmp_header->code) {
+					case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_NET_UNREACHABLE:
+						strText.Format(_T("Network unreachable(%d)\n"), pkt.icmp_header->code);
+						break;
+
+					case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE:
+						strText.Format(_T("Host unreachable(%d)\n"), pkt.icmp_header->code);
+						break;
+
+					case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_PROTOCOL_UNREACHABLE:
+						strText.Format(_T("Protocol unreachable(%d)\n"), pkt.icmp_header->code);
+						break;
+
+					case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_PORT_UNREACHABLE:
+						strText.Format(_T("Port unreachable(%d)\n"), pkt.icmp_header->code);
+						break;
+
+					default:
+						strText.Format(_T("Unknown(%d)\n"), pkt.icmp_header->code); 
+						break;
+					}
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					saveFile.WriteString(strText);
+					break;
+				}
+				case ICMP_TYPE_SOURCE_QUENCH:
+				{
+					strText.Format(_T("Code: %d\n"), ICMP_TYPE_SOURCE_QUENCH);
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					saveFile.WriteString(strText);
+					break;
+				}
+				case ICMP_TYPE_REDIRECT:
+				{
+					strText = "Code: ";
+					switch (pkt.icmp_header->code) {
+					case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_NETWORK:
+						strText.Format(_T("Redirect datagrams for the network(%d)\n"), pkt.icmp_header->code);
+						break;
+					case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_HOST:
+						strText.Format(_T("Redirect datagrams for the host(%d)\n"), pkt.icmp_header->code);
+						break;
+					case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_TOS_AND_NETWORK:
+						strText.Format(_T("Redirect datagrams for the tos and host(%d)\n"), pkt.icmp_header->code);
+						break;
+					case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_TOS_AND_HOST:
+						strText.Format(_T("Redirect datadrams for the tos and network(%d)\n"), pkt.icmp_header->code);
+						break;
+					}
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					saveFile.WriteString(strText);
+
+					strText = _T("Destination router IP Address: ") + IPAddr2CString(addr);
+					saveFile.WriteString(strText);
+					break;
+				}
+				case ICMP_TYPE_ECHO:
+				{
+					strText.Format(_T("Code: %d"), pkt.icmp_header->code);
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Identifier: %hu\n"), id);
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Seq: %hu\n"), seq);
+					saveFile.WriteString(strText);
+					break;
+				}
+				case ICMP_TYPE_TIME_EXCEEDED:
+				{
+					strText = "Code: ";
+					switch (pkt.icmp_header->code) {
+					case ICMP_TYPE_TIME_EXCEEDED_CODE_TTL_EXCEEDED_IN_TRANSIT:
+						strText.Format(_T("TTL time exceeded(%d)\n"), pkt.icmp_header->code);
+						break;
+					case ICMP_TYPE_TIME_EXCEEDED_CODE_FRAGMENT_REASSEMBLY_TIME_EXCEEDE:
+						strText.Format(_T("Fragment reconstruct time exceeded(%d)\n"), pkt.icmp_header->code);
+						break;
+					}
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Checksum: 0x%04hx\n"), ntohs(pkt.icmp_header->checksum));
+					saveFile.WriteString(strText);
+					break;
+				}
+				default:
+					strText.Format(_T("Code: %d\n"), pkt.icmp_header->code);
+					saveFile.WriteString(strText);
+
+					strText.Format(_T("Checksum: 0x%04hX\n"), pkt.icmp_header->checksum);
+					saveFile.WriteString(strText);
+					break;
+				}
+			}
+			else if (pkt.igmp_header != NULL) {
+				strText = "Type: IGMP\n";
+				saveFile.WriteString(strText);
+
+				IP_Address addr = *(IP_Address*)&(pkt.igmp_header->group_addr);
+
+				strText.Format(_T("Max response latency: %d\n"), pkt.igmp_header->max_resp);
+				saveFile.WriteString(strText);
+
+				strText.Format(_T("Checksum: 0x%04hx\n"), ntohs(pkt.igmp_header->checksum));
+				saveFile.WriteString(strText);
+
+				strText = _T("Group address: ") + IPAddr2CString(addr);
+				saveFile.WriteString(strText);
 			}
 		}	
 		else if (pkt.arp_header != NULL) {
