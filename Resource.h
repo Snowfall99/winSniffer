@@ -15,7 +15,6 @@
 #define IDC_START_BUTTON                1003
 #define IDC_FILTER_BUTTON               1004
 #define IDC_END_BUTTON2                 1004
-#define IDC_END_BUTTON3                 1005
 #define IDC_LIST1                       1006
 #define IDC_LIST                        1006
 #define IDC_PACKET_LIST                 1006
@@ -30,11 +29,13 @@
 #define IDC_MAC_SRC                     1012
 #define IDC_MAC_DST                     1013
 #define IDC_EDIT6                       1014
+#define IDC_SEARCH_EDIT                 1014
 #define IDC_EDIT7                       1015
 #define IDC_EDIT8                       1016
 #define IDC_EDIT9                       1017
 #define IDC_EDIT10                      1018
 #define IDC_MFCBUTTON1                  1022
+#define IDC_SEARCH_BUTTON               1023
 
 // Next default values for new objects
 // 
@@ -42,7 +43,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1023
+#define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -47,6 +47,9 @@ protected:
 	CString mac_src_addr;
 	CString mac_dst_addr;
 
+	/* 搜索信息 */
+	CString search_info;
+
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
@@ -71,6 +74,7 @@ public:
 	afx_msg int printListCtrlPacketList(const packet &pkt);
 	afx_msg int printListCtrlPacketList(packetPool& pool);
 	afx_msg int printListCtrlPacketList(packetPool& pool, const CString filter, const CString ip_src, const CString ip_dst, const CString mac_src, const CString mac_dst);
+	afx_msg int printListCtrlPacketList(packetPool& pool, CString search_info);
 	afx_msg CString MACAddr2CString(const MAC_Address& addr);
 	afx_msg CString IPAddr2CString(const IP_Address& addr);
 	afx_msg int printTreeCtrlPacketDetails(const packet &pkt);
@@ -95,4 +99,6 @@ public:
 	CString m_dst_edit;
 	CString m_mac_src;
 	CString m_mac_dst;
+	CString m_search_edit;
+	afx_msg void OnBnClickedSearchButton();
 };
