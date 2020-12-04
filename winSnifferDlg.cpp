@@ -100,6 +100,7 @@ CwinSnifferDlg::CwinSnifferDlg(CWnd* pParent /*=nullptr*/)
 	, m_dst_edit(_T(""))
 	, m_mac_src(_T(""))
 	, m_mac_dst(_T(""))
+	, m_search_edit(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_catcher.setPool(&m_pool);			// catcher 初始化
@@ -121,6 +122,7 @@ void CwinSnifferDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_DST_EDIT, m_dst_edit);
 	DDX_Text(pDX, IDC_MAC_SRC, m_mac_src);
 	DDX_Text(pDX, IDC_MAC_DST, m_mac_dst);
+	DDX_Text(pDX, IDC_SEARCH_EDIT, m_search_edit);
 }
 
 BEGIN_MESSAGE_MAP(CwinSnifferDlg, CDialogEx)
@@ -140,6 +142,7 @@ BEGIN_MESSAGE_MAP(CwinSnifferDlg, CDialogEx)
 	ON_NOTIFY(NM_CLICK, IDC_PACKET_LIST, &CwinSnifferDlg::onClickedList)
 	ON_NOTIFY(NM_CUSTOMDRAW, IDC_PACKET_LIST, &CwinSnifferDlg::OnCustomDrawList)
 	ON_BN_CLICKED(IDC_SAVE_BUTTON, &CwinSnifferDlg::OnBnClickedSaveButton)
+	ON_BN_CLICKED(IDC_SEARCH_BUTTON, &CwinSnifferDlg::OnBnClickedSearchButton)
 END_MESSAGE_MAP()
 
 
@@ -689,6 +692,19 @@ void CwinSnifferDlg::OnClickedFilterButton()
 	printListCtrlPacketList(m_pool, strFilter, ip_src_addr, ip_dst_addr, mac_src_addr, mac_dst_addr);
 }
 
+void CwinSnifferDlg::OnBnClickedSearchButton()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(true);
+	
+	search_info = m_search_edit.GetString();
+
+	m_listCtrlPacketList.DeleteAllItems();
+	m_treeCtrlPacketDetails.DeleteAllItems();
+	m_editorCtrlPacketBytes.SetWindowText(_T(""));
+
+	printListCtrlPacketList(m_pool, search_info);
+}
 
 /********************************
 * 控件初始化
@@ -896,6 +912,23 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool) {
 	}
 
 	return pktNum;
+}
+
+int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, CString search_info) {
+	if (pool.isEmpty()) {
+		return -1;
+	}
+
+	int pktNum = pool.getSize();
+	for (int i = 0; i < pktNum; i++) {
+		if (pool.get(i).http_msg != NULL) {
+			CString strTmp;
+			strTmp = pool.get(i).http_msg;
+			if (search_info == strTmp) {
+				printListCtrlPacketList(pool.get(i));
+			}
+		}
+	}
 }
 
 int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, const CString filter, const CString ip_src, const CString ip_dst, const CString mac_src, const CString mac_dst) {
@@ -2212,7 +2245,7 @@ int CwinSnifferDlg::printHTTP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 			++p;
 			++count;
 		}
-		strText += "\\r\\n";
+		strText += "\r\n";
 		m_treeCtrlPacketDetails.InsertItem(strText, HTTPNode, 0);
 
 		p += 2;
