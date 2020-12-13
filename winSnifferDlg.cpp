@@ -5,14 +5,14 @@
 #include "pch.h"
 #include "pcap.h"
 #include "threadParam.h"
-#include "packet.h"
+#include "packetHeader.h"
 #include "framework.h"
 #include "winSniffer.h"
 #include "resource.h"
 #include "winSnifferDlg.h"
 #include "afxdialogex.h"
 #include "threadParam.h"
-#include <vector>
+#include "utils.h"
 
 #define _CRT_SECURE_NO_WARNINGS
 
@@ -261,6 +261,8 @@ void CwinSnifferDlg::OnBnClickedStartButton()
 		GetDlgItem(IDC_START_BUTTON)->EnableWindow(FALSE);
 		GetDlgItem(IDC_END_BUTTON)->EnableWindow(TRUE);
 		GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(FALSE);
+		GetDlgItem(IDC_SEARCH_BUTTON)->EnableWindow(FALSE);
+		GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(FALSE);
 
 		m_listCtrlPacketList.DeleteAllItems();
 		m_treeCtrlPacketDetails.DeleteAllItems();
@@ -278,6 +280,8 @@ void CwinSnifferDlg::OnBnClickedEndButton()
 	GetDlgItem(IDC_START_BUTTON)->EnableWindow(TRUE);
 	GetDlgItem(IDC_END_BUTTON)->EnableWindow(FALSE);
 	GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(TRUE);
+	GetDlgItem(IDC_SEARCH_BUTTON)->EnableWindow(TRUE);
+	GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(TRUE);
 	AfxMessageBox(_T("End Catching..."), MB_OK);
 	m_catcher.stopCapture();
 	m_pktCaptureFlag = false;
@@ -296,7 +300,7 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 		return;
 
 	const packet& pkt = m_pool.get(pktNum);
-	
+
 	if (pkt.isEmpty()) {
 		AfxMessageBox(_T("Packet is empty"));
 		return;
@@ -344,7 +348,7 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 			strText.Format(_T("Header Length: %d bytes\n"), pkt.getIPHeaderLength());
 			saveFile.WriteString(strText);
 
-			strText.Format(_T("Tos: 0x%02X\n"), pkt.ip_header->service);
+			strText.Format(_T("Tos: 0x%02X\n"), pkt.ip_header->tos);
 			saveFile.WriteString(strText);
 
 			strText.Format(_T("Total length: %hu\n"), ntohs(pkt.ip_header->total_len));
@@ -374,6 +378,7 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 			switch (pkt.ip_header->protocol)
 			{
 			case PROTOCOL_ICMP:	strText = "Protocol：ICMP(1)\n";	break;
+			
 			case PROTOCOL_TCP:	strText = "Protocol：TCP(6)\n";	break;
 			case PROTOCOL_UDP:	strText = "Protocol：UDP(17)\n";	break;
 			default:			strText.Format(_T("Protocol: unknown(%d)\n"), pkt.ip_header->protocol);	break;
@@ -461,7 +466,7 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 				saveFile.WriteString(_T("\n"));
 			}
 			else if (pkt.icmp_header != NULL) {
-				switch (pkt.icmp_header->type)
+				switch (pkt.icmp_header->icmp_type)
 				{
 				case ICMP_TYPE_ECHO_REPLY:					strText = "(ECHO REPLY)\n";				break;
 				case ICMP_TYPE_DESTINATION_UNREACHABLE:		strText = "(DESTINATION UNREACHABLE)\n";break;
@@ -478,20 +483,20 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 				}
 				saveFile.WriteString(strText);
 
-				IP_Address addr = *(IP_Address*)&(pkt.icmp_header->others);
+				IP_Address addr = *(IP_Address*)&(pkt.icmp_header->icmp_id);
 				u_short id = pkt.getICMPID();
 				u_short seq = pkt.getICMPSeq();
 
-				strText.Format(_T("Type: %u\n"), pkt.icmp_header->type);
+				strText.Format(_T("Type: %u\n"), pkt.icmp_header->icmp_type);
 				saveFile.WriteString(strText);
 
-				switch (pkt.icmp_header->type) {
+				switch (pkt.icmp_header->icmp_type) {
 				case ICMP_TYPE_ECHO_REPLY:
 				{
 					strText = "Code: 0\n";
 					saveFile.WriteString(strText);
 
-					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->icmp_checksum));
 					saveFile.WriteString(strText);
 
 					strText.Format(_T("Identifier: %hu\n"), id);
@@ -504,30 +509,30 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 				case ICMP_TYPE_DESTINATION_UNREACHABLE:
 				{
 					strText = "Code: ";
-					switch (pkt.icmp_header->code) {
+					switch (pkt.icmp_header->icmp_code) {
 					case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_NET_UNREACHABLE:
-						strText.Format(_T("Network unreachable(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("Network unreachable(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 
 					case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE:
-						strText.Format(_T("Host unreachable(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("Host unreachable(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 
 					case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_PROTOCOL_UNREACHABLE:
-						strText.Format(_T("Protocol unreachable(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("Protocol unreachable(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 
 					case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_PORT_UNREACHABLE:
-						strText.Format(_T("Port unreachable(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("Port unreachable(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 
 					default:
-						strText.Format(_T("Unknown(%d)\n"), pkt.icmp_header->code); 
+						strText.Format(_T("Unknown(%d)\n"), pkt.icmp_header->icmp_code); 
 						break;
 					}
 					saveFile.WriteString(strText);
 
-					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->icmp_checksum));
 					saveFile.WriteString(strText);
 					break;
 				}
@@ -536,30 +541,30 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 					strText.Format(_T("Code: %d\n"), ICMP_TYPE_SOURCE_QUENCH);
 					saveFile.WriteString(strText);
 
-					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->icmp_checksum));
 					saveFile.WriteString(strText);
 					break;
 				}
 				case ICMP_TYPE_REDIRECT:
 				{
 					strText = "Code: ";
-					switch (pkt.icmp_header->code) {
+					switch (pkt.icmp_header->icmp_code) {
 					case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_NETWORK:
-						strText.Format(_T("Redirect datagrams for the network(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("Redirect datagrams for the network(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 					case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_HOST:
-						strText.Format(_T("Redirect datagrams for the host(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("Redirect datagrams for the host(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 					case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_TOS_AND_NETWORK:
-						strText.Format(_T("Redirect datagrams for the tos and host(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("Redirect datagrams for the tos and host(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 					case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_TOS_AND_HOST:
-						strText.Format(_T("Redirect datadrams for the tos and network(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("Redirect datadrams for the tos and network(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 					}
 					saveFile.WriteString(strText);
 
-					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->icmp_checksum));
 					saveFile.WriteString(strText);
 
 					strText = _T("Destination router IP Address: ") + IPAddr2CString(addr);
@@ -568,10 +573,10 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 				}
 				case ICMP_TYPE_ECHO:
 				{
-					strText.Format(_T("Code: %d"), pkt.icmp_header->code);
+					strText.Format(_T("Code: %d"), pkt.icmp_header->icmp_code);
 					saveFile.WriteString(strText);
 
-					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->checksum));
+					strText.Format(_T("Checksum: 0x%04hX\n"), ntohs(pkt.icmp_header->icmp_checksum));
 					saveFile.WriteString(strText);
 
 					strText.Format(_T("Identifier: %hu\n"), id);
@@ -584,25 +589,25 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 				case ICMP_TYPE_TIME_EXCEEDED:
 				{
 					strText = "Code: ";
-					switch (pkt.icmp_header->code) {
+					switch (pkt.icmp_header->icmp_code) {
 					case ICMP_TYPE_TIME_EXCEEDED_CODE_TTL_EXCEEDED_IN_TRANSIT:
-						strText.Format(_T("TTL time exceeded(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("TTL time exceeded(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 					case ICMP_TYPE_TIME_EXCEEDED_CODE_FRAGMENT_REASSEMBLY_TIME_EXCEEDE:
-						strText.Format(_T("Fragment reconstruct time exceeded(%d)\n"), pkt.icmp_header->code);
+						strText.Format(_T("Fragment reconstruct time exceeded(%d)\n"), pkt.icmp_header->icmp_code);
 						break;
 					}
 					saveFile.WriteString(strText);
 
-					strText.Format(_T("Checksum: 0x%04hx\n"), ntohs(pkt.icmp_header->checksum));
+					strText.Format(_T("Checksum: 0x%04hx\n"), ntohs(pkt.icmp_header->icmp_checksum));
 					saveFile.WriteString(strText);
 					break;
 				}
 				default:
-					strText.Format(_T("Code: %d\n"), pkt.icmp_header->code);
+					strText.Format(_T("Code: %d\n"), pkt.icmp_header->icmp_code);
 					saveFile.WriteString(strText);
 
-					strText.Format(_T("Checksum: 0x%04hX\n"), pkt.icmp_header->checksum);
+					strText.Format(_T("Checksum: 0x%04hX\n"), pkt.icmp_header->icmp_checksum);
 					saveFile.WriteString(strText);
 					break;
 				}
@@ -616,7 +621,7 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 				strText.Format(_T("Max response latency: %d\n"), pkt.igmp_header->max_resp);
 				saveFile.WriteString(strText);
 
-				strText.Format(_T("Checksum: 0x%04hx\n"), ntohs(pkt.igmp_header->checksum));
+				strText.Format(_T("Checksum: 0x%04hx\n"), ntohs(pkt.igmp_header->igmp_checksum));
 				saveFile.WriteString(strText);
 
 				strText = _T("Group address: ") + IPAddr2CString(addr);
@@ -715,6 +720,8 @@ void CwinSnifferDlg::initialBtns()
 	GetDlgItem(IDC_START_BUTTON)->EnableWindow(TRUE);
 	GetDlgItem(IDC_END_BUTTON)->EnableWindow(FALSE);
 	GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(FALSE);
+	GetDlgItem(IDC_SEARCH_BUTTON)->EnableWindow(FALSE);
+	GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(FALSE);
 }
 
 void CwinSnifferDlg::initialDevList()
@@ -752,15 +759,15 @@ void CwinSnifferDlg::initialFilterList()
 	// TODO: 在此添加控件通知处理程序代码
 	std::vector<CString> filterList;
 	filterList.push_back(_T("Ethernet"));
-	filterList.push_back(_T("IP"));
+	filterList.push_back(_T("IPv4"));
+	filterList.push_back(_T("IPv6"));
 	filterList.push_back(_T("ARP"));
 	filterList.push_back(_T("ICMP"));
 	filterList.push_back(_T("IGMP"));
 	filterList.push_back(_T("TCP"));
 	filterList.push_back(_T("UDP"));
 	filterList.push_back(_T("HTTP"));
-	filterList.push_back(_T("DHCP"));
-
+	
 	CString str;
 	str.Format(_T("ALL"));
 	m_comboBoxFilterList.AddString(str);
@@ -798,16 +805,19 @@ void CwinSnifferDlg::initialListCtrlPacketList()
 	strname = "Length";
 	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.05));
 	strname = "SRC MAC Address";
-	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.175));
+	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.12));
 	strname = "DST MAC Address";
-	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.175));
+	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.12));
 	strname = "SRC IP Address";
-	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.175));
+	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.10));
 	strname = "DST IP Address";
-	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.175));
+	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.10));
+	strname = "Info";
+	m_listCtrlPacketList.InsertColumn(++index, strname, LVCFMT_CENTER, double(rect.Width() * 0.26));
 
 }
 
+/* 过滤器输入框初始化 */
 void CwinSnifferDlg::initialEditCtrl()
 {
 	GetDlgItem(IDC_MAC_SRC)->SetWindowTextW(_T("All"));
@@ -896,6 +906,23 @@ int CwinSnifferDlg::printListCtrlPacketList(const packet &pkt)
 	{
 		col += 2;
 	}
+
+	/* 打印数据包信息 */
+	if (pkt.arp_header != NULL) {
+		CString strInfo = getARPMessage(pkt);
+
+		m_listCtrlPacketList.SetItemText(row, ++col, strInfo);
+	}
+	else if (pkt.ip_header != NULL) {
+		CString strInfo = getIPMessage(pkt);
+
+		m_listCtrlPacketList.SetItemText(row, ++col, strInfo);
+	}
+	else if (pkt.ipv6_header != NULL) {
+		CString strInfo = getIPv6Message(pkt);
+
+		m_listCtrlPacketList.SetItemText(row, ++col, strInfo);
+	}
 	
 	return 0;
 }
@@ -921,13 +948,8 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, CString search_inf
 
 	int pktNum = pool.getSize();
 	for (int i = 0; i < pktNum; i++) {
-		if (pool.get(i).http_msg != NULL) {
-			CString strTmp;
-			strTmp = pool.get(i).http_msg;
-			if (search_info == strTmp) {
-				printListCtrlPacketList(pool.get(i));
-			}
-		}
+		if (pool.get(i).ip_header != NULL && pool.get(i).tcp_header != NULL)
+			pool.get(i).search(search_info);
 	}
 }
 
@@ -974,10 +996,19 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, const CString filt
 				}
 			}
 		}
-		else if (filter == "IP") {
+		else if (filter == "IPv4") {
 			for (int i = 0; i < pktNum; ++i) {
 				const packet& pkt = pool.get(i);
-				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+				if (pkt.protocol == "IP" && IPAddr2CString(pkt.ip_header->dst) == ip_dst) {
+					printListCtrlPacketList(pkt);
+					++filterPktNum;
+				}
+			}
+		}
+		else if (filter == "IPv6") {
+			for (int i = 0; i < pktNum; ++i) {
+				const packet& pkt = pool.get(i);
+				if (pkt.protocol == "IPv6" && IPv6Addr2CString(pkt.ipv6_header->dst) == ip_dst) {
 					printListCtrlPacketList(pkt);
 					++filterPktNum;
 				}
@@ -1013,10 +1044,10 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, const CString filt
 				}
 			}
 		}
-		else if (filter == "IP") {
+		else if (filter == "IPv4") {
 			for (int i = 0; i < pktNum; ++i) {
 				const packet& pkt = pool.get(i);
-				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->src) == ip_src) {
+				if (pkt.protocol == "IP" && IPAddr2CString(pkt.ip_header->src) == ip_src) {
 					printListCtrlPacketList(pkt);
 					++filterPktNum;
 				}
@@ -1280,10 +1311,10 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, const CString filt
 				}
 			}
 		}
-		else if (filter == "IP") {
+		else if (filter == "IPV4") {
 			for (int i = 0; i < pktNum; ++i) {
 				const packet& pkt = pool.get(i);
-				if (pkt.protocol == filter && IPAddr2CString(pkt.ip_header->src) == ip_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
+				if (pkt.protocol == "IP" && IPAddr2CString(pkt.ip_header->src) == ip_src && IPAddr2CString(pkt.ip_header->dst) == ip_dst && MACAddr2CString(pkt.eth_header->src) == mac_src && MACAddr2CString(pkt.eth_header->dst) == mac_dst) {
 					printListCtrlPacketList(pkt);
 					++filterPktNum;
 				}
@@ -1365,13 +1396,12 @@ int CwinSnifferDlg::printEditCtrlPacketBytes(const packet& pkt) {
 			strPacketBytes += "  ";
 			strPacketBytes += " ";
 			++byteCount16;
-			if (byteCount16 == 8)
+			if (byteCount16 <= 8)
 			{
 				strPacketBytes += "\t";
-				//strPacketBytes += "#";
 			}
 		}
-		strPacketBytes += " ";
+		strPacketBytes += "\t";
 		/* 打印最后一行字节对应的ASCII字符 */
 		for (int charCount = 0; charCount < (pkt.header->caplen % 16); ++charCount, ++pASCIIPacketBytes)
 		{
@@ -1455,7 +1485,7 @@ int CwinSnifferDlg::printIP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode) {
 	strText.Format(_T("首部长度：%d 字节（%d）"), pkt.getIPHeaderLength(), pkt.getIPHeaderLengthRaw());
 	m_treeCtrlPacketDetails.InsertItem(strText, IPNode, 0);
 
-	strText.Format(_T("服务质量：0x%02X"), pkt.ip_header->service);
+	strText.Format(_T("服务质量：0x%02X"), pkt.ip_header->tos);
 	m_treeCtrlPacketDetails.InsertItem(strText, IPNode, 0);
 
 	strText.Format(_T("总长度：%hu"), ntohs(pkt.ip_header->total_len));
@@ -1577,7 +1607,7 @@ int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	CString strText, strTmp;
 
 	strText = "ICMP";
-	switch (pkt.icmp_header->type)
+	switch (pkt.icmp_header->icmp_type)
 	{
 	case ICMP_TYPE_ECHO_REPLY:					strTmp = "（回应应答报告）";			break;
 	case ICMP_TYPE_DESTINATION_UNREACHABLE:		strTmp = "（信宿不可达报告）";		break;
@@ -1595,21 +1625,21 @@ int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	strText += strTmp;
 	ICMPNode = m_treeCtrlPacketDetails.InsertItem(strText, parentNode, 0);
 
-	IP_Address addr = *(IP_Address*)&(pkt.icmp_header->others);
+	IP_Address addr = *(IP_Address*)&(pkt.icmp_header->icmp_id);
 	u_short id = pkt.getICMPID();
 	u_short seq = pkt.getICMPSeq();
 
-	strText.Format(_T("类型：%u"), pkt.icmp_header->type);
+	strText.Format(_T("类型：%u"), pkt.icmp_header->icmp_type);
 	m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
-	switch (pkt.icmp_header->type)
+	switch (pkt.icmp_header->icmp_type)
 	{
 	case ICMP_TYPE_ECHO_REPLY:
 	{
 		strText = "代码：0";
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
-		strText.Format(_T("校验和:0x%04hX"), ntohs(pkt.icmp_header->checksum));
+		strText.Format(_T("校验和:0x%04hX"), ntohs(pkt.icmp_header->icmp_checksum));
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
 		strText.Format(_T("标识：%hu"), id);
@@ -1624,22 +1654,22 @@ int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 
 	case ICMP_TYPE_DESTINATION_UNREACHABLE:
 		strText = "代码：";
-		switch (pkt.icmp_header->code)
+		switch (pkt.icmp_header->icmp_code)
 		{
 		case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_NET_UNREACHABLE:
-			strText.Format(_T("网络不可达 （%d）"), pkt.icmp_header->code);
+			strText.Format(_T("网络不可达 （%d）"), pkt.icmp_header->icmp_code);
 			break;
 
 		case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_HOST_UNREACHABLE:
-			strText.Format(_T("主机不可达 （%d）"), pkt.icmp_header->code);
+			strText.Format(_T("主机不可达 （%d）"), pkt.icmp_header->icmp_code);
 			break;
 
 		case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_PROTOCOL_UNREACHABLE:
-			strText.Format(_T("协议不可达 （%d）"), pkt.icmp_header->code);
+			strText.Format(_T("协议不可达 （%d）"), pkt.icmp_header->icmp_code);
 			break;
 
 		case ICMP_TYPE_DESTINATION_UNREACHABLE_CODE_PORT_UNREACHABLE:
-			strText.Format(_T("端口不可达 （%d）"), pkt.icmp_header->code);
+			strText.Format(_T("端口不可达 （%d）"), pkt.icmp_header->icmp_code);
 			break;
 
 		case 6:
@@ -1651,12 +1681,12 @@ int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 			break;
 
 		default:
-			strText.Format(_T("未知 （%d）"), pkt.icmp_header->code); break;
+			strText.Format(_T("未知 （%d）"), pkt.icmp_header->icmp_code); break;
 		}
 		strText += strTmp;
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
-		strText.Format(_T("校验和：0x%04hX"), ntohs(pkt.icmp_header->checksum));
+		strText.Format(_T("校验和：0x%04hX"), ntohs(pkt.icmp_header->icmp_checksum));
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 		break;
 
@@ -1664,34 +1694,34 @@ int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 		strText.Format(_T("代码：%d"), ICMP_TYPE_SOURCE_QUENCH_CODE);
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
-		strText.Format(_T("校验和：0x%04hX"), ntohs(pkt.icmp_header->checksum));
+		strText.Format(_T("校验和：0x%04hX"), ntohs(pkt.icmp_header->icmp_checksum));
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 		break;
 
 	case ICMP_TYPE_REDIRECT:
 		strText = "代码：";
-		switch (pkt.icmp_header->code)
+		switch (pkt.icmp_header->icmp_code)
 		{
 		case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_NETWORK:
-			strText.Format(_T("对特定网络重定向（%d)"), pkt.icmp_header->code);
+			strText.Format(_T("对特定网络重定向（%d)"), pkt.icmp_header->icmp_code);
 			break;
 
 		case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_HOST:
-			strText.Format(_T("对特定主机重定向 （%d)"), pkt.icmp_header->code);
+			strText.Format(_T("对特定主机重定向 （%d)"), pkt.icmp_header->icmp_code);
 			break;
 
 		case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_TOS_AND_NETWORK:
-			strText.Format(_T("基于指定的服务类型对特定网络重定向 （%d）"), pkt.icmp_header->code);
+			strText.Format(_T("基于指定的服务类型对特定网络重定向 （%d）"), pkt.icmp_header->icmp_code);
 			break;
 
 		case ICMP_TYPE_REDIRECT_CODE_REDIRECT_DATAGRAMS_FOR_THE_TOS_AND_HOST:
-			strText.Format(_T("基于指定的服务类型对特定主机重定向 （%d）"), pkt.icmp_header->code);
+			strText.Format(_T("基于指定的服务类型对特定主机重定向 （%d）"), pkt.icmp_header->icmp_code);
 			break;
 		}
 		strText += strTmp;
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
-		strText.Format(_T("校验和：0x%04hx"), ntohs(pkt.icmp_header->checksum));
+		strText.Format(_T("校验和：0x%04hx"), ntohs(pkt.icmp_header->icmp_checksum));
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
 		strText = _T("目标路由器的IP地址：") + IPAddr2CString(addr);
@@ -1699,10 +1729,10 @@ int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 		break;
 
 	case ICMP_TYPE_ECHO:
-		strText.Format(_T("代码：%d"), pkt.icmp_header->code);
+		strText.Format(_T("代码：%d"), pkt.icmp_header->icmp_code);
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
-		strText.Format(_T("校验和：0x%04hX"), ntohs(pkt.icmp_header->checksum));
+		strText.Format(_T("校验和：0x%04hX"), ntohs(pkt.icmp_header->icmp_checksum));
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
 		strText.Format(_T("标识：%hu"), id);
@@ -1714,28 +1744,28 @@ int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 
 	case ICMP_TYPE_TIME_EXCEEDED:
 		strText = "代码：";
-		switch (pkt.icmp_header->code)
+		switch (pkt.icmp_header->icmp_code)
 		{
 		case ICMP_TYPE_TIME_EXCEEDED_CODE_TTL_EXCEEDED_IN_TRANSIT:
-			strText.Format(_T("TTL超时 （%d）"), pkt.icmp_header->code);
+			strText.Format(_T("TTL超时 （%d）"), pkt.icmp_header->icmp_code);
 			break;
 		case ICMP_TYPE_TIME_EXCEEDED_CODE_FRAGMENT_REASSEMBLY_TIME_EXCEEDE:
-			strText.Format(_T("分片重组超时 （%d）"), pkt.icmp_header->code);
+			strText.Format(_T("分片重组超时 （%d）"), pkt.icmp_header->icmp_code);
 			break;
 		}
 		strText += strTmp;
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
-		strText.Format(_T("校验和：0x%04hx"), ntohs(pkt.icmp_header->checksum));
+		strText.Format(_T("校验和：0x%04hx"), ntohs(pkt.icmp_header->icmp_checksum));
 		m_treeCtrlPacketDetails.InsertItem(strText, ICMPNode, 0);
 
 		break;
 
 	default:
-		strText.Format(_T("代码：%d"), pkt.icmp_header->code);
+		strText.Format(_T("代码：%d"), pkt.icmp_header->icmp_code);
 		m_treeCtrlPacketDetails.InsertItem(strText, 0, 0, ICMPNode, 0);
 
-		strText.Format(_T("校验和：0x%04hX"), pkt.icmp_header->checksum);
+		strText.Format(_T("校验和：0x%04hX"), pkt.icmp_header->icmp_checksum);
 		m_treeCtrlPacketDetails.InsertItem(strText, 0, 0, ICMPNode, 0);
 
 		break;
@@ -1752,7 +1782,7 @@ int CwinSnifferDlg::printIGMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	CString strText, strTmp;
 
 	strText = "IGMP";
-	strTmp.Format(_T("(%d)"), pkt.igmp_header->type);
+	strTmp.Format(_T("(%d)"), pkt.igmp_header->igmp_type);
 	strText += strTmp;
 	IGMPNode = m_treeCtrlPacketDetails.InsertItem(strText, parentNode, 0);
 
@@ -1761,7 +1791,7 @@ int CwinSnifferDlg::printIGMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	strText.Format(_T("最大响应时延： %d"), pkt.igmp_header->max_resp);
 	m_treeCtrlPacketDetails.InsertItem(strText, IGMPNode, 0);
 
-	strText.Format(_T("校验和：0x%04hx"), ntohs(pkt.igmp_header->checksum));
+	strText.Format(_T("校验和：0x%04hx"), ntohs(pkt.igmp_header->igmp_checksum));
 	m_treeCtrlPacketDetails.InsertItem(strText, IGMPNode, 0);
 
 	strText = _T("组地址：") + IPAddr2CString(addr);
@@ -1827,15 +1857,21 @@ int CwinSnifferDlg::printTCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	strText.Format(_T("紧急指针：%hu"), ntohs(pkt.tcp_header->urg_ptr));
 	m_treeCtrlPacketDetails.InsertItem(strText, TCPNode, 0);
 
-	if (pkt.dns_header != NULL)
-	{
-		//printDNS2TreeCtrl(pkt, parentNode);
+	HTREEITEM DataNode;
+
+	strText.Format(_T("Data: (%d)"), pkt.getL4PayloadLength());
+	DataNode = m_treeCtrlPacketDetails.InsertItem(strText, parentNode, 0);
+
+	CString strDataBytes;
+	u_char* pHexPacketBytes = pkt.packet_data + 54;
+	for (int byteCount = 54; byteCount < pkt.getL4PayloadLength(); byteCount++) {
+		strTmp.Format(_T("%02X"), *pHexPacketBytes);
+		strDataBytes += strTmp;
+		++pHexPacketBytes;
 	}
-	else if (pkt.dhcp_header != NULL)
-	{
-		printDHCP2TreeCtrl(pkt, parentNode);
-	}
-	else if (pkt.http_msg != NULL)
+	m_treeCtrlPacketDetails.InsertItem(strDataBytes, DataNode, 0);
+
+	if (pkt.http_msg != NULL)
 	{
 		printHTTP2TreeCtrl(pkt, parentNode);
 	}
@@ -1866,351 +1902,6 @@ int CwinSnifferDlg::printUDP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 
 	strText.Format(_T("校验和：0x%04hX"), ntohs(pkt.udp_header->checksum));
 	m_treeCtrlPacketDetails.InsertItem(strText, UDPNode, 0);
-
-	if (pkt.dns_header != NULL)
-	{
-		//printDNS2TreeCtrl(pkt, parentNode);
-	}
-	else if (pkt.dhcp_header != NULL)
-	{
-		printDHCP2TreeCtrl(pkt, parentNode);
-	}
-	return 0;
-}
-
-int CwinSnifferDlg::printDHCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
-{
-	if (pkt.isEmpty() || pkt.dhcp_header == NULL || parentNode == NULL)
-	{
-		return -1;
-	}
-
-	HTREEITEM DHCPNode = m_treeCtrlPacketDetails.InsertItem(_T("DHCP"), parentNode, 0);
-	CString strText, strTmp;
-	/* 解析dhcp首部 */
-	strText.Format(_T("报文类型：%d"), pkt.dhcp_header->op);
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText.Format(_T("硬件类型：%d"), pkt.dhcp_header->hw_type);
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText.Format(_T("硬件地址长度：%d"), pkt.dhcp_header->hw_len);
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText.Format(_T("跳数：%d"), pkt.dhcp_header->hops);
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText.Format(_T("事务ID：0x%08lX"), ntohl(pkt.dhcp_header->xid));
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText.Format(_T("客户启动时间：%hu"), ntohs(pkt.dhcp_header->secs));
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText.Format(_T("标志：0x%04hX"), ntohs(pkt.dhcp_header->flags));
-	switch (ntohs(pkt.dhcp_header->flags) >> 15)
-	{
-	case DHCP_FLAGS_BROADCAST: strText += "（广播）"; break;
-	case DHCP_FLAGS_UNICAST: strText += "（单播）"; break;
-	}
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText = _T("客户机IP地址：") + IPAddr2CString(pkt.dhcp_header->client_ipaddr);
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText = _T("你的（客户）IP地址：") + IPAddr2CString(pkt.dhcp_header->you_ipaddr);
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText = _T("服务器IP地址：") + IPAddr2CString(pkt.dhcp_header->server_ipaddr);;
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText = _T("网关IP地址：") + IPAddr2CString(pkt.dhcp_header->gate_ipaddr);
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	/*  解析dhcp首部剩余部分 */
-	CString strChaddr;
-	for (int i = 0; i < 6; ++i)
-	{
-		strTmp.Format(_T("%02X"), pkt.dhcp_header->client_addr[i]);
-		strChaddr += strTmp + _T("-");
-	}
-	strChaddr.Delete(strChaddr.GetLength() - 1, 1);
-
-	strText = _T("客户机MAC地址：") + strChaddr;
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText = "服务器主机名：";
-	strTmp.Format(_T("%s"), pkt.dhcp_header->server_name);
-	strText += strTmp;
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	strText = "引导文件名：";
-	strTmp.Format(_T("%s"), pkt.dhcp_header->file);
-	strText += strTmp;
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-	// 跳过引导文件名
-	u_char* p = (u_char*)pkt.dhcp_header->file + 128;
-
-	if (ntohl(*(u_long*)p) == 0x63825363)
-	{
-		strText = "Magic cookie: DHCP";
-		m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-	}
-
-	// 跳过magic cookie
-	p += 4;
-
-	while (*p != 0xFF)
-	{
-		switch (*p)
-		{
-		case DHCP_OPTIONS_DHCP_MESSAGE_TYPE:
-		{
-			strText = "选项：（53）DHCP报文类型";
-			switch (*(p + 2))
-			{
-			case 1: strText += "（Discover）"; break;
-			case 2: strText += "（Offer）"; break;
-			case 3: strText += "（Request）"; break;
-			case 4: strText += "（Decline）"; break;
-			case 5: strText += "（ACK）"; break;
-			case 6: strText += "（NAK）"; break;
-			case 7: strText += "（Release）"; break;
-			case 8: strText += "（Inform）"; break;
-			}
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			strText.Format(_T("长度：%d"), *(++p));
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			strText.Format(_T("DHCP：%d"), *(++p));
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			// 指向下一个选项
-			++p;
-		}
-		break;
-
-		case DHCP_OPTIONS_REQUESTED_IP_ADDRESS:
-		{
-			strText = "选项：（50）请求IP地址";
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			strText.Format(_T("长度：%d"), *(++p));
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			IP_Address* addr = (IP_Address*)(++p);
-			strText = _T("地址：") + IPAddr2CString(*addr);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			// 指向下一个选项
-			p += 4;
-		}
-		break;
-
-		case DHCP_OPTIONS_IP_ADDRESS_LEASE_TIME:
-		{
-			strText = "选项：（51）IP地址租约时间";
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			strText.Format(_T("长度：%d"), *(++p));
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			u_int time = *(++p);
-			strText.Format(_T("租约时间：%u"), time);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			// 指向下一个选项
-			p += 4;
-		}
-		break;
-
-		case DHCP_OPTIONS_CLIENT_IDENTIFIER:
-		{
-			strText = "选项：（61）客户机标识";
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			int len = *(++p);
-			strText.Format(_T("长度：%d"), len);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			strText = "硬件类型：";
-			if (*(++p) == 0x01)
-			{
-				strText += "以太网（0x01）";
-				m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-				MAC_Address* addr = (MAC_Address*)(++p);
-				strText = _T("客户机标识：") + MACAddr2CString(*addr);
-				m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-				p += 6;
-			}
-			else
-			{
-				strText.Format(_T("%d"), *p);
-				strText += strTmp;
-				m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-				p += len;
-			}
-		}
-		break;
-
-		case DHCP_OPTIONS_VENDOR_CLASS_IDENTIFIER:
-		{
-			strText = "选项：（60）供应商类标识";
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			int len = *(++p);
-			strText.Format(_T("长度：%d"), len);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			int count = 0;
-			strText = "供应商类标识：";
-			for (; count < len; count++)
-			{
-				strTmp.Format(_T("%c"), *(++p));
-				strText += strTmp;
-			}
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			++p;
-		}
-		break;
-
-		case DHCP_OPTIONS_SERVER_IDENTIFIER:
-		{
-			strText = "选项：（54）服务器标识";
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			int len = *(++p);
-			strText.Format(_T("长度：%d"), len);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			IP_Address* addr = (IP_Address*)(++p);
-			strText = _T("服务器标识：") + IPAddr2CString(*addr);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			p += 4;
-		}
-		break;
-
-		case DHCP_OPTIONS_SUBNET_MASK:
-		{
-
-
-			strText = "选项：（1）子网掩码";
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			int len = *(++p);
-			strText.Format(_T("长度：%d"), len);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			IP_Address* submask = (IP_Address*)(++p);
-			strText = _T("子网掩码：") + IPAddr2CString(*submask);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			p += 4;
-		}
-		break;
-
-		case DHCP_OPTIONS_ROUTER_OPTION:
-		{
-
-
-			strText = "选项：（3）路由器";
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			int len = *(++p);
-			strText.Format(_T("长度：%d"), len);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			int count = 0;
-			while (count < len)
-			{
-				IP_Address* addr = (IP_Address*)(++p);
-				strText = _T("路由器：") + IPAddr2CString(*addr);
-				m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-				count += 4;
-				p += 4;
-			}
-		}
-		break;
-
-		case DHCP_OPTIONS_DOMAIN_NAME_SERVER_OPTION:
-		{
-			strText = "选项：（6）DNS服务器";
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			int len = *(++p);
-			strText.Format(_T("长度：%d"), len);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			int count = 0;
-			++p;
-			while (count < len)
-			{
-				IP_Address* addr = (IP_Address*)(p);
-				strText = _T("DNS服务器：") + IPAddr2CString(*addr);
-				m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-				count += 4;
-				p += 4;
-			}
-		}
-		break;
-
-
-		case DHCP_OPTIONS_HOST_NAME_OPTION:
-		{
-			strText = "选项：（12）主机名";
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			int len = *(++p);
-			strText.Format(_T("长度：%d"), len);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			int count = 0;
-			strText = "主机名：";
-
-			for (; count < len; count++)
-			{
-				strTmp.Format(_T("%c"), *(++p));
-				strText += strTmp;
-			}
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			++p;
-		}
-		break;
-
-		case DHCP_OPTIONS_PAD_OPTION:
-			++p;
-			break;
-
-		default:
-		{
-			strText.Format(_T("选项：（%d）"), *p);
-			HTREEITEM DHCPOptionNode = m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
-
-			int len = *(++p);
-			strText.Format(_T("长度：%d"), len);
-			m_treeCtrlPacketDetails.InsertItem(strText, DHCPOptionNode, 0);
-
-			// 指向选项内容
-			++p;
-
-			// 跳过选项内容
-			p += len;
-		}
-		break;
-		}
-
-	}
-	strText = "选项：（255）结束";
-	m_treeCtrlPacketDetails.InsertItem(strText, DHCPNode, 0);
 
 	return 0;
 }
@@ -2245,7 +1936,7 @@ int CwinSnifferDlg::printHTTP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 			++p;
 			++count;
 		}
-		strText += "\r\n";
+		//strText += "\n";
 		m_treeCtrlPacketDetails.InsertItem(strText, HTTPNode, 0);
 
 		p += 2;
@@ -2280,32 +1971,6 @@ void CwinSnifferDlg::onClickedList(NMHDR* pNMHDR, LRESULT* pResult)
 /***************
 * 辅助函数
 ***************/
-
-CString CwinSnifferDlg::MACAddr2CString(const MAC_Address& addr) {
-	CString strAddr, strTmp;
-
-	for (int i = 0; i < 6; i++) {
-		strTmp.Format(_T("%02X"), addr.bytes[i]);
-		strAddr += strTmp + _T("-");
-	}
-	strAddr.Delete(strAddr.GetLength() - 1);
-
-	return strAddr;
-}
-
-CString CwinSnifferDlg::IPAddr2CString(const IP_Address& addr) {
-	CString strAddr, strTmp;
-
-	for (int i = 0; i < 3; i++) {
-		strTmp.Format(_T("%d"), addr.bytes[i]);
-		strAddr += strTmp + _T(".");
-	}
-	strTmp.Format(_T("%d"), addr.bytes[3]);
-	strAddr += strTmp;
-
-	return strAddr;
-}
-
 
 void CwinSnifferDlg::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 {
