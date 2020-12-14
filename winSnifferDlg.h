@@ -75,8 +75,6 @@ public:
 	afx_msg int printListCtrlPacketList(packetPool& pool);
 	afx_msg int printListCtrlPacketList(packetPool& pool, const CString filter, const CString ip_src, const CString ip_dst, const CString mac_src, const CString mac_dst);
 	afx_msg int printListCtrlPacketList(packetPool& pool, CString search_info);
-	afx_msg CString MACAddr2CString(const MAC_Address& addr);
-	afx_msg CString IPAddr2CString(const IP_Address& addr);
 	afx_msg int printTreeCtrlPacketDetails(const packet &pkt);
 	afx_msg int printEthernet2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	afx_msg int printIP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
@@ -85,8 +83,6 @@ public:
 	afx_msg int printIGMP2TreeCtrl(const packet& pkt, HTREEITEM& packetNode);
 	afx_msg int printTCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	afx_msg int printUDP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
-	afx_msg int printDNS2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
-	afx_msg int printDHCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	afx_msg int printHTTP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	CEdit m_editorCtrlPacketBytes;
 	afx_msg void initialEditCtrlPacketBytes();

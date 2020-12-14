@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "stdafx.h"
 #include "packetcatcher.h"
-#include "packet.h"
+#include "packetHeader.h"
 #include "threadparam.h"
 #include "pcap.h"
 
@@ -60,7 +60,7 @@ bool packetCatcher::openAdapter(int setitemindexofdevlist, const CTime& currentt
 		return false;
 	}
 
-	CString file = _T("snifferui.pcap");
+	CString file = _T("winSniffer.pcap");
 	CString path = _T(".\\tmp\\") + file;
 	m_dumper = pcap_dump_open(m_adhandle, CStringA(path));
 

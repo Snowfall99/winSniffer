@@ -1,7 +1,7 @@
 #pragma once
 #include <map>
 #include "pcap.h"
-#include "packet.h"
+#include "packetHeader.h"
 
 class packetPool {
 private:
