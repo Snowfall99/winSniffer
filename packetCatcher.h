@@ -25,11 +25,11 @@ public:
 	packetCatcher(packetPool* pool);
 	~packetCatcher();
 
-	bool setPool(packetPool* pool);
-	bool openAdapter(int selItemIndexOfDevList, const CTime& currentTime);
-	bool openAdapter(CString path);
-	bool closeAdapter();
-	void startCapture(int mode);
-	void stopCapture();
-	CString getDevName();
+	bool setPool(packetPool* pool);												// 初始化数据包池
+	bool openAdapter(int selItemIndexOfDevList, const CTime& currentTime);		// 打开对应网卡
+	bool openAdapter(CString path);												// 开启路径下储存的网卡信息
+	bool closeAdapter();														// 关闭网卡
+	void startCapture(int mode);												// 开启抓包线程
+	void stopCapture();															// 停止抓包线程
+	CString getDevName();														// 获取设备名称
 };
