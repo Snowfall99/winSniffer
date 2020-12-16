@@ -150,6 +150,9 @@ int packet::decodeEthernet() {
 	protocol = "Ethernet";
 	eth_header = (Ethernet_Header*)packet_data;
 
+	/*CString tmp;
+	tmp.Format(_T("0x%04X"), ntohs(eth_header->eth_type));
+	AfxMessageBox(tmp);*/
 	switch (ntohs(eth_header->eth_type)) {
 	case ETHERNET_TYPE_IP:
 		decodeIP(packet_data + ETHERNET_HEADER_LENGTH);
@@ -195,7 +198,7 @@ int packet::decodeIP(u_char* L2Payload) {
 }
 
 int packet::decodeIPv6(u_char* L2Payload) {
-	if (ipv6_header == NULL) {
+	if (L2Payload == NULL) {
 		return -1;
 	}
 
@@ -386,12 +389,12 @@ int packet::getL4PayloadLength() const {
 CString getARPMessage(packet pkt) {
 	CString message;
 	if (pkt.arp_header != NULL) {
-		switch (pkt.arp_header->opcode) {
+		switch (ntohs(pkt.arp_header->opcode)) {
 		case ARP_OPCODE_REQUEST:
-			message = IPAddr2CString(pkt.arp_header->src_ip) + _T(" REQUEST ") + IPAddr2CString(pkt.arp_header->dst_ip) + _T("MAC Address");
+			message = IPAddr2CString(pkt.arp_header->src_ip) + _T(" request MAC address of ") + IPAddr2CString(pkt.arp_header->dst_ip);
 			break;
 		case ARP_OPCODE_REPLY:
-			message = IPAddr2CString(pkt.arp_header->src_ip) + _T(" REPLY ") + IPAddr2CString(pkt.arp_header->dst_ip);
+			message = IPAddr2CString(pkt.arp_header->src_ip) + _T(" reply ") + IPAddr2CString(pkt.arp_header->dst_ip);
 			break;
 		default:
 			break;
