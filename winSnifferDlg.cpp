@@ -902,14 +902,22 @@ int CwinSnifferDlg::printListCtrlPacketList(const packet &pkt)
 		m_listCtrlPacketList.SetItemText(row, ++col, strSrcIP);
 		m_listCtrlPacketList.SetItemText(row, ++col, strDstIP);
 	}
+	else if (pkt.ipv6_header != NULL)
+	{
+		CString strSrcIPv6 = IPv6Addr2CString(pkt.ipv6_header->src);
+		CString strDstIPv6 = IPv6Addr2CString(pkt.ipv6_header->dst);
+
+		m_listCtrlPacketList.SetItemText(row, ++col, strSrcIPv6);
+		m_listCtrlPacketList.SetItemText(row, ++col, strDstIPv6);
+	}
 	else
 	{
 		col += 2;
 	}
 
 	/* 打印数据包信息 */
-	if (pkt.arp_header != NULL) {
-		CString strInfo = getARPMessage(pkt);
+	if (pkt.ipv6_header != NULL) {
+		CString strInfo = getIPv6Message(pkt);
 
 		m_listCtrlPacketList.SetItemText(row, ++col, strInfo);
 	}
@@ -918,8 +926,8 @@ int CwinSnifferDlg::printListCtrlPacketList(const packet &pkt)
 
 		m_listCtrlPacketList.SetItemText(row, ++col, strInfo);
 	}
-	else if (pkt.ipv6_header != NULL) {
-		CString strInfo = getIPv6Message(pkt);
+	else if (pkt.arp_header != NULL) {
+		CString strInfo = getARPMessage(pkt);
 
 		m_listCtrlPacketList.SetItemText(row, ++col, strInfo);
 	}
@@ -1463,6 +1471,10 @@ int CwinSnifferDlg::printEthernet2TreeCtrl(const packet& pkt, HTREEITEM& parentN
 	{
 		printIP2TreeCtrl(pkt, parentNode);
 	}
+	else if (pkt.ipv6_header != NULL)
+	{
+		printIPv62TreeCtrl(pkt, parentNode);
+	}
 	else if (pkt.arp_header != NULL)
 	{
 		printARP2TreeCtrl(pkt, parentNode);
@@ -1594,6 +1606,42 @@ int CwinSnifferDlg::printARP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 
 	strText = _T("目的IP地址：") + IPAddr2CString(pkt.arp_header->dst_ip);
 	m_treeCtrlPacketDetails.InsertItem(strText, ARPNode, 0);
+
+	return 0;
+}
+
+int CwinSnifferDlg::printIPv62TreeCtrl(const packet& pkt, HTREEITEM& parentNode) {
+	if (pkt.isEmpty() || pkt.ipv6_header == NULL || parentNode == NULL) {
+		return -1;
+	}
+
+	HTREEITEM IPv6Node;
+	CString strText, strTmp;
+
+	strText = "IPv6";
+	
+	IPv6Node = m_treeCtrlPacketDetails.InsertItem(strText, 0, 0, parentNode, 0);
+
+	strText.Format(_T("Version: %u"), pkt.ipv6_header->version);
+	m_treeCtrlPacketDetails.InsertItem(strText, IPv6Node, 0);
+
+	strText.Format(_T("Traffic: %u"), pkt.ipv6_header->version);
+	m_treeCtrlPacketDetails.InsertItem(strText, IPv6Node, 0);
+
+	strText.Format(_T("Label: %d"), pkt.ipv6_header->label);
+	m_treeCtrlPacketDetails.InsertItem(strText, IPv6Node, 0);
+
+	strText.Format(_T("Next Header: %u"), pkt.ipv6_header->next_header);
+	m_treeCtrlPacketDetails.InsertItem(strText, IPv6Node, 0);
+
+	strText.Format(_T("Limits: %u"), pkt.ipv6_header->limits);
+	m_treeCtrlPacketDetails.InsertItem(strText, IPv6Node, 0);
+
+	strText = _T("Soucre: ") + IPv6Addr2CString(pkt.ipv6_header->src);
+	m_treeCtrlPacketDetails.InsertItem(strText, IPv6Node, 0);
+
+	strText = _T("Destination: ") + IPv6Addr2CString(pkt.ipv6_header->dst);
+	m_treeCtrlPacketDetails.InsertItem(strText, IPv6Node, 0);
 
 	return 0;
 }
@@ -2015,13 +2063,9 @@ void CwinSnifferDlg::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 				itemColor = RGB(100, 149, 237);	// 蓝色
 
 			}
-			else if (*pStrPktProtocol == "DNS")
+			else if (*pStrPktProtocol == "IPv6")
 			{
 				itemColor = RGB(135, 206, 250);	// 浅蓝色
-			}
-			else if (*pStrPktProtocol == "DHCP")
-			{
-				itemColor = RGB(189, 254, 76);	// 淡黄色
 			}
 			else if (*pStrPktProtocol == "HTTP")
 			{

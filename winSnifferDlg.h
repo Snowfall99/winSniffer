@@ -84,6 +84,7 @@ public:
 	afx_msg int printTCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	afx_msg int printUDP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	afx_msg int printHTTP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
+	afx_msg int printIPv62TreeCtrl(const packet& pkt, HTREEITEM& parentNode);
 	CEdit m_editorCtrlPacketBytes;
 	afx_msg void initialEditCtrlPacketBytes();
 	afx_msg int printEditCtrlPacketBytes(const packet& pkt);
