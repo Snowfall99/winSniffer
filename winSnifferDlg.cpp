@@ -177,7 +177,7 @@ BOOL CwinSnifferDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
-	// TODO: 在此添加额外的初始化代码
+	/* 对各个组件进行初始化 */
 	initialBtns();
 	initialEditCtrl();
 	initialDevList();
@@ -241,6 +241,7 @@ HCURSOR CwinSnifferDlg::OnQueryDragIcon()
 * 按钮事件实现
 * *****************************************/
 
+/* 点击Start按钮对应处理函数 */
 void CwinSnifferDlg::OnBnClickedStartButton()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -258,30 +259,34 @@ void CwinSnifferDlg::OnBnClickedStartButton()
 
 	if (m_catcher.openAdapter(setItemIndex, currentTime)) {
 		AfxMessageBox(_T("Start Catching..."));
+		/* 设置各个按钮对应的状态 */
 		GetDlgItem(IDC_START_BUTTON)->EnableWindow(FALSE);
 		GetDlgItem(IDC_END_BUTTON)->EnableWindow(TRUE);
 		GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(FALSE);
 		GetDlgItem(IDC_SEARCH_BUTTON)->EnableWindow(FALSE);
 		GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(FALSE);
 
+		/* 清除之前抓到的数据包 */
 		m_listCtrlPacketList.DeleteAllItems();
 		m_treeCtrlPacketDetails.DeleteAllItems();
 
 		m_pool.clear();
 
+		/* 开启抓包线程 */
 		m_catcher.startCapture(MODE_CAPTURE_LIVE);
 		m_pktCaptureFlag = true;
 	}
 }
 
+/* 点击End按钮对应的处理函数 */
 void CwinSnifferDlg::OnBnClickedEndButton()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	GetDlgItem(IDC_START_BUTTON)->EnableWindow(TRUE);
-	GetDlgItem(IDC_END_BUTTON)->EnableWindow(FALSE);
-	GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(TRUE);
-	GetDlgItem(IDC_SEARCH_BUTTON)->EnableWindow(TRUE);
-	GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(TRUE);
+	GetDlgItem(IDC_START_BUTTON)->EnableWindow(TRUE);	// 将START按钮置为可以点击状态
+	GetDlgItem(IDC_END_BUTTON)->EnableWindow(FALSE);	// 将END按钮置为不可点击状态
+	GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(TRUE);	// 将FILTER按钮置为可以点击状态
+	GetDlgItem(IDC_SEARCH_BUTTON)->EnableWindow(TRUE);	// 将SEARCH按钮置为可以点击状态
+	GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(TRUE);	// 将SAVE按钮置为可以点击状态
 	AfxMessageBox(_T("End Catching..."), MB_OK);
 	m_catcher.stopCapture();
 	m_pktCaptureFlag = false;
@@ -289,6 +294,7 @@ void CwinSnifferDlg::OnBnClickedEndButton()
 	printListCtrlPacketList(m_pool);
 }
 
+/* 点击Save按钮对应的处理函数 */
 void CwinSnifferDlg::OnBnClickedSaveButton()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -301,20 +307,24 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 
 	const packet& pkt = m_pool.get(pktNum);
 
+	/* 若为空包，则返回"Packet is empty" */
 	if (pkt.isEmpty()) {
 		AfxMessageBox(_T("Packet is empty"));
 		return;
 	}
 
+	/* 获取数据包到达时间 */
 	CTime pktArrivalTime((time_t)(pkt.header->ts.tv_sec));
 	CString strPktArrivalTime = pktArrivalTime.Format("%Y/%m/%d %H:%M:%S");
 	CString strTime = pktArrivalTime.Format("%Y_%m_%d_%H_%M_%S_");
+
 	CString file = _T("packet.txt");
 	CString path = _T(".\\tmp\\") + strTime + file;
 
 	CStdioFile saveFile;
 	CFileException fileException;
 
+	/* 将数据包存储到对应的位置 */
 	saveFile.Open(path, CFile::modeCreate | CFile::typeText | CFile::modeReadWrite, & fileException); 
 	if (fileException.m_cause != 0) {
 		TRACE("Can't open file %s, error = %u\n", path, fileException.m_cause);
@@ -677,7 +687,7 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 
 void CwinSnifferDlg::OnClickedFilterButton()
 {
-	// TODO: 在此添加控件通知处理程序代码
+	/* 获取包过滤对应参数 */
 	int selIndex = m_comboBoxFilterList.GetCurSel();
 	if (selIndex < 0)
 		return;
@@ -714,7 +724,7 @@ void CwinSnifferDlg::OnBnClickedSearchButton()
 /********************************
 * 控件初始化
 * *******************************/
-
+/* 按钮初始化函数 */
 void CwinSnifferDlg::initialBtns()
 {
 	GetDlgItem(IDC_START_BUTTON)->EnableWindow(TRUE);
@@ -724,9 +734,9 @@ void CwinSnifferDlg::initialBtns()
 	GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(FALSE);
 }
 
+/* 网卡列表初始化 */
 void CwinSnifferDlg::initialDevList()
 {
-	// TODO: 在此添加控件通知处理程序代码
 	CString str;
 	str = "Choose Adapter";
 	m_comboBoxDevList.AddString(str);
@@ -736,11 +746,13 @@ void CwinSnifferDlg::initialDevList()
 	pcap_if_t* allDevs = NULL;
 	char errbuf[1024];
 
+	/* 如果没有安装winpcap，则会显示错误 */
 	if (pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &allDevs, errbuf) == -1) {
 		AfxMessageBox(_T("pcap_findallDevs fails"), MB_OK);
 		return;
 	}
 
+	/* 列出找到的所有网卡 */
 	pcap_addr_t* addr;
 	char ip6str[128];
 	CString strname;
@@ -754,6 +766,7 @@ void CwinSnifferDlg::initialDevList()
 	}
 }
 
+/* 初始化过滤器列表 */
 void CwinSnifferDlg::initialFilterList()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -848,6 +861,7 @@ void CwinSnifferDlg::initialEditCtrlPacketBytes()
 /*****************
 * 打印数据包信息
 * *************/
+/* 打印单个数据包信息到数据包列表 */
 int CwinSnifferDlg::printListCtrlPacketList(const packet &pkt)
 {
 	if (pkt.isEmpty()) {
@@ -864,6 +878,7 @@ int CwinSnifferDlg::printListCtrlPacketList(const packet &pkt)
 
 	row = m_listCtrlPacketList.InsertItem(mask, m_listCtrlPacketList.GetItemCount(), strNum, 0, 0, 0, (LPARAM)&(pkt.protocol));
 	
+	/* 打印日期信息 */
 	CTime pktArrivalTime = ((time_t)(pkt.header->ts.tv_sec));
 	CString strPktArrivalTime = pktArrivalTime.Format("%Y/%m/%d %H:%M:%S");
 	m_listCtrlPacketList.SetItemText(row, ++col, strPktArrivalTime);
@@ -884,6 +899,10 @@ int CwinSnifferDlg::printListCtrlPacketList(const packet &pkt)
 	{
 		CString strSrcMAC = MACAddr2CString(pkt.eth_header->src);
 		CString strDstMAC = MACAddr2CString(pkt.eth_header->dst);
+
+		if (strDstMAC == _T("FF-FF-FF-FF-FF-FF")) {
+			strDstMAC = _T("Broadcast");
+		}
 
 		m_listCtrlPacketList.SetItemText(row, ++col, strSrcMAC);
 		m_listCtrlPacketList.SetItemText(row, ++col, strDstMAC);
@@ -935,6 +954,7 @@ int CwinSnifferDlg::printListCtrlPacketList(const packet &pkt)
 	return 0;
 }
 
+/* 打印m_pool中数据包信息到数据报列表 */
 int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool) {
 	if (pool.isEmpty()) {
 		AfxMessageBox(_T("Empty pool"));
@@ -949,6 +969,7 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool) {
 	return pktNum;
 }
 
+/* 根据搜索信息打印对应数据包 */
 int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, CString search_info) {
 	if (pool.isEmpty()) {
 		return -1;
@@ -956,11 +977,15 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, CString search_inf
 
 	int pktNum = pool.getSize();
 	for (int i = 0; i < pktNum; i++) {
-		if (pool.get(i).ip_header != NULL && pool.get(i).tcp_header != NULL)
-			pool.get(i).search(search_info);
+		if (pool.get(i).ip_header != NULL && pool.get(i).tcp_header != NULL) {
+			if (pool.get(i).search(search_info)) {
+				printListCtrlPacketList(pool.get(i));
+			}
+		}
 	}
 }
 
+/* 根绝包过滤信息打印对应数据包 */
 int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, const CString filter, const CString ip_src, const CString ip_dst, const CString mac_src, const CString mac_dst) {
 	if (pool.isEmpty() || filter.IsEmpty()) {
 		return -1;
@@ -1343,6 +1368,7 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, const CString filt
 	return filterPktNum;
 }
 
+/* 打印包数据对应的十六进制以及ASCII */
 int CwinSnifferDlg::printEditCtrlPacketBytes(const packet& pkt) {
 	if (pkt.isEmpty()) {
 		return -1;
@@ -1424,6 +1450,7 @@ int CwinSnifferDlg::printEditCtrlPacketBytes(const packet& pkt) {
 	return 0;
 }
 
+/* 打印数据包详细信息到树形控件 */
 int CwinSnifferDlg::printTreeCtrlPacketDetails(const packet& pkt)
 {
 	if (pkt.isEmpty()) {
@@ -1450,6 +1477,7 @@ int CwinSnifferDlg::printTreeCtrlPacketDetails(const packet& pkt)
 	return 0;
 }
 
+/* 打印Ethernet信息到树形控件 */
 int CwinSnifferDlg::printEthernet2TreeCtrl(const packet& pkt, HTREEITEM& parentNode) {
 	if (pkt.isEmpty() || pkt.eth_header == NULL || parentNode == NULL) {
 		return -1;
@@ -1483,6 +1511,7 @@ int CwinSnifferDlg::printEthernet2TreeCtrl(const packet& pkt, HTREEITEM& parentN
 	return 0;
 }
 
+/* 打印IP数据包信息到树形控件 */
 int CwinSnifferDlg::printIP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode) {
 	if (pkt.isEmpty() || pkt.ip_header == NULL || parentNode == NULL) {
 		return -1;
@@ -1559,6 +1588,7 @@ int CwinSnifferDlg::printIP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode) {
 	return 0;
 }
 
+/* 打印ARP数据包信息到树形控件 */
 int CwinSnifferDlg::printARP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode) 
 {
 	if (pkt.isEmpty() || pkt.arp_header == NULL || parentNode == NULL)
@@ -1610,6 +1640,7 @@ int CwinSnifferDlg::printARP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	return 0;
 }
 
+/* 打印IPv6数据包信息到树形控件 */
 int CwinSnifferDlg::printIPv62TreeCtrl(const packet& pkt, HTREEITEM& parentNode) {
 	if (pkt.isEmpty() || pkt.ipv6_header == NULL || parentNode == NULL) {
 		return -1;
@@ -1646,6 +1677,7 @@ int CwinSnifferDlg::printIPv62TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	return 0;
 }
 
+/* 打印ICMP数据包信息到树形控件 */
 int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 {
 	if (pkt.isEmpty() || pkt.icmp_header == NULL || parentNode == NULL)
@@ -1821,6 +1853,7 @@ int CwinSnifferDlg::printICMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	return 0;
 }
 
+/* 打印IGMP数据包信息到树形控件 */
 int CwinSnifferDlg::printIGMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 {
 	if (pkt.isEmpty() || pkt.igmp_header == NULL || parentNode == NULL)
@@ -1848,6 +1881,7 @@ int CwinSnifferDlg::printIGMP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	return 0;
 }
 
+/* 打印TCP数据包信息到树形控件 */
 int CwinSnifferDlg::printTCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 {
 	if (pkt.isEmpty() || pkt.tcp_header == NULL || parentNode == NULL)
@@ -1910,15 +1944,18 @@ int CwinSnifferDlg::printTCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	strText.Format(_T("Data: (%d)"), pkt.getL4PayloadLength());
 	DataNode = m_treeCtrlPacketDetails.InsertItem(strText, parentNode, 0);
 
-	CString strDataBytes;
-	u_char* pHexPacketBytes = pkt.packet_data + 54;
-	for (int byteCount = 54; byteCount < pkt.getL4PayloadLength(); byteCount++) {
-		strTmp.Format(_T("%02X"), *pHexPacketBytes);
-		strDataBytes += strTmp;
-		++pHexPacketBytes;
+	if (pkt.getL4PayloadLength() != 0) {
+		CString strDataBytes;
+		u_char* pHexPacketBytes = pkt.packet_data + 54;
+		for (int byteCount = 54; byteCount < pkt.getL4PayloadLength(); byteCount++) {
+			strTmp.Format(_T("%02X"), *pHexPacketBytes);
+			strDataBytes += strTmp;
+			++pHexPacketBytes;
+		}
+		if (strDataBytes != _T("")) {
+			m_treeCtrlPacketDetails.InsertItem(strDataBytes, DataNode, 0);
+		}
 	}
-	m_treeCtrlPacketDetails.InsertItem(strDataBytes, DataNode, 0);
-
 	if (pkt.http_msg != NULL)
 	{
 		printHTTP2TreeCtrl(pkt, parentNode);
@@ -1927,6 +1964,7 @@ int CwinSnifferDlg::printTCP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	return 0;
 }
 
+/* 打印UDP数据包信息到树形控件 */
 int CwinSnifferDlg::printUDP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 {
 	if (pkt.isEmpty() || pkt.udp_header == NULL || parentNode == NULL)
@@ -1954,6 +1992,7 @@ int CwinSnifferDlg::printUDP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 	return 0;
 }
 
+/* 打印HTTP数据包信息到树形控件 */
 int CwinSnifferDlg::printHTTP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 {
 	if (pkt.isEmpty() || pkt.http_msg == NULL || parentNode == NULL)
@@ -1996,7 +2035,7 @@ int CwinSnifferDlg::printHTTP2TreeCtrl(const packet& pkt, HTREEITEM& parentNode)
 /************************
 * 控件触发事件
 *************************/
-
+/* 点击数据包列表中的数据包，显示对应的信息 */
 void CwinSnifferDlg::onClickedList(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
@@ -2019,7 +2058,7 @@ void CwinSnifferDlg::onClickedList(NMHDR* pNMHDR, LRESULT* pResult)
 /***************
 * 辅助函数
 ***************/
-
+/* 设置各数据包在数据包列表中显示的颜色 */
 void CwinSnifferDlg::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMLVCUSTOMDRAW pNMCD = (LPNMLVCUSTOMDRAW)pNMHDR;

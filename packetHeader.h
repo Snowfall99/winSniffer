@@ -29,41 +29,41 @@ public:
 
 	bool isEmpty() const;
 
-	int decodeEthernet();
-	int decodeIP(u_char* L2Payload);
-	int decodeIPv6(u_char* L2Payload);
-	int decodeARP(u_char* L2Payload);
-	int decodeICMP(u_char* L3Payload);
-	int decodeIGMP(u_char* L3PayLoad);
-	int decodeTCP(u_char *L3Payload);
-	int decodeUDP(u_char *L3Payload);
-	int decodeHTTP(u_char *L4Payload);
+	int decodeEthernet();							// 解析Ethernet数据包
+	int decodeIP(u_char* L2Payload);				// 解析IP数据包
+	int decodeIPv6(u_char* L2Payload);				// 解析IPv6数据包
+	int decodeARP(u_char* L2Payload);				// 解析ARP数据包
+	int decodeICMP(u_char* L3Payload);				// 解析ICMP数据包
+	int decodeIGMP(u_char* L3PayLoad);				// 解析IGMP数据包
+	int decodeTCP(u_char *L3Payload);				// 解析TCP数据包
+	int decodeUDP(u_char *L3Payload);				// 解析UDP数据包
+	int decodeHTTP(u_char *L4Payload);				// 解析HTTP数据包
 
-	int getIPHeaderLength() const;
-	int getIPHeaderLengthRaw() const;
-	int getIPFlags() const;
-	int getIPFlagsMF() const;
-	int getIPFlagDF() const;
-	int getIPOffset() const;
+	int getIPHeaderLength() const;					// 获取IP数据包头部长度
+	int getIPHeaderLengthRaw() const;				// 获取IP数据包头部长度(RAW)
+	int getIPFlags() const;							// 获取IP数据包标志位
+	int getIPFlagsMF() const;						// 获取IP数据包MF标志位
+	int getIPFlagDF() const;						// 获取IP数据包DF标志位
+	int getIPOffset() const;						// 获取IP数据包片偏移量
 	
-	void search(CString keyword);
+	bool search(CString keyword);					// 根据搜索信息搜索数据包
 
-	u_short getICMPID()	const;
-	u_short getICMPSeq() const;
+	u_short getICMPID()	const;						// 获取ICMP数据包ID
+	u_short getICMPSeq() const;						// 获取ICMP数据包Seq
 
-	int getTCPHeaderLength() const;
-	int getTCPHeaderLengthRaw() const;
-	u_short getTCPFlags()		const;
-	int getTCPFlagsURG()	const;
-	int getTCPFlagsACK()	const;
-	int getTCPFlagsPSH()	const;
-	int getTCPFlagsRST()	const;
-	int getTCPFlagsSYN()	const;
-	int getTCPFlagsFIN()	const;
+	int getTCPHeaderLength() const;					// 获取TCP数据包头部长度
+	int getTCPHeaderLengthRaw() const;				// 获取TCP数据包头部长度(RAW)
+	u_short getTCPFlags()		const;				// 获取TCP数据包标志位
+	int getTCPFlagsURG()	const;					// 获取TCP数据包URG标志位
+	int getTCPFlagsACK()	const;					// 获取TCP数据包ACK标志位
+	int getTCPFlagsPSH()	const;					// 获取TCP数据包PSH标志位
+	int getTCPFlagsRST()	const;					// 获取TCP数据包RST标志位
+	int getTCPFlagsSYN()	const;					// 获取TCP数据包SYN标志位
+	int getTCPFlagsFIN()	const;					// 获取TCP数据包FIN标志位
 
-	int getL4PayloadLength() const;
+	int getL4PayloadLength() const;					// 获取数据包第四层负载长度
 };
 
-CString getIPMessage(packet pkt);
-CString getIPv6Message(packet pkt);
-CString getARPMessage(packet pkt);
+CString getIPMessage(packet pkt);					// 获取IP数据包对应信息
+CString getIPv6Message(packet pkt);					// 获取IPv6数据包对应信息
+CString getARPMessage(packet pkt);					// 获取ARP数据包对应信息

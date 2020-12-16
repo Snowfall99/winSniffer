@@ -8,9 +8,9 @@ public:
 	packetDumper();
 	~packetDumper();
 
-	void setPath(CString path);
-	CString getPath();
+	void setPath(CString path);						// 设置缓存路径
+	CString getPath();								// 获取路径
 
-	void dump(CString path);
-	void copyFile(CFile* dst, CFile* src);
+	void dump(CString path);						// 网卡信息缓存
+	void copyFile(CFile* dst, CFile* src);			// 复制文件
 };

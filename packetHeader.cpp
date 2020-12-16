@@ -150,9 +150,6 @@ int packet::decodeEthernet() {
 	protocol = "Ethernet";
 	eth_header = (Ethernet_Header*)packet_data;
 
-	/*CString tmp;
-	tmp.Format(_T("0x%04X"), ntohs(eth_header->eth_type));
-	AfxMessageBox(tmp);*/
 	switch (ntohs(eth_header->eth_type)) {
 	case ETHERNET_TYPE_IP:
 		decodeIP(packet_data + ETHERNET_HEADER_LENGTH);
@@ -444,18 +441,19 @@ CString getIPMessage(packet pkt) {
 	}
 }
 
-void packet::search(CString keyword) {
-	CString strPacketBytes, strTmp;
-	u_char* pHexPacketBytes = packet_data + 54;
-	u_char* pASCIIPacketBytes = packet_data;
-	CString strDataBytes;
+bool packet::search(CString keyword) {
+	CString message, strTmp;
+	u_char* data;
+	int len_data = getL4PayloadLength();
+	data = (packet_data + 54);
 
-	for (int byteCount = 54; byteCount < getL4PayloadLength(); byteCount++) {
-		strTmp.Format(_T("%02X"), *pHexPacketBytes);
-		strDataBytes += strTmp;
-		++pHexPacketBytes;
+	for (int i = 0; i < len_data; i++) {
+		strTmp.Format(_T("%c"), *data);
+		message += strTmp;
 	}
 
-
-	return;
+	if (message == keyword) {
+		return true;
+	}
+	return false;
 }
