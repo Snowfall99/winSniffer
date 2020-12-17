@@ -72,11 +72,12 @@ typedef struct IP_Address {
 	u_char bytes[4];
 }IP_Address;
 
+/* IPv6地址 */
 typedef struct IPv6_Address {
 	u_char bytes[16];
 }IPv6_Address;
 
-/* 数据链路层Ethernet */
+/* 数据链路层帧Ethernet */
 typedef struct Ethernet_Header {
 	MAC_Address dst;	// 目的MAC地址
 	MAC_Address src;	// 源MAC地址
@@ -98,7 +99,7 @@ typedef struct IP_Header {
 	u_int		option_padding; 		// 选项和填充				
 }IP_Header;
 
-/* ipv6数据包头部 */
+/* IPv6数据包头部 */
 typedef struct IPv6_Header {
 	u_char			version;				// 版本号(4bits)
 	u_char			traffic;				// 优先级(8bits)
@@ -162,5 +163,4 @@ typedef struct UDP_Header {
 	u_short		dst;					// 目的端口
 	u_short		len;					// 长度
 	u_short		checksum;				// 校验和
-
 }UDP_Header;

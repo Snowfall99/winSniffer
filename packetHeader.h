@@ -14,7 +14,7 @@ public:
 	TCP_Header		*tcp_header;					// TCP首部
 	UDP_Header		*udp_header;					// UDP首部
 	
-	CString			message;						// 数据报所携带的信息概括
+	CString			message;						// 数据报所携带的信息
 	u_char			*http_msg;						// HTTP报文
 	u_char			*packet_data;					// 数据包
 	struct pcap_pkthdr	*header;					// 捕获数据包长度，数据包到达时间

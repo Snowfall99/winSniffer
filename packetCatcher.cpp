@@ -61,7 +61,7 @@ bool packetCatcher::openAdapter(int setitemindexofdevlist, const CTime& currentt
 	}
 
 	CString file = _T("winSniffer.pcap");
-	CString path = _T(".\\tmp\\") + file;
+	CString path = _T(".\\pcap\\") + file;
 	m_dumper = pcap_dump_open(m_adhandle, CStringA(path));
 
 	if (m_dumper == NULL) {

@@ -1,0 +1,39 @@
+Arrival time:2020/12/17 17:08:19
+No.25, (66 bytes in total, capture 66 bytes)
+
+Internet: 00-E0-4C-36-34-1D->30-0D-9E-44-D3-CE)
+Destination MAC address: 30-0D-9E-44-D3-CE
+Source MAC address: 00-E0-4C-36-34-1D
+Type: 0x0800
+
+IP (59.78.38.164->59.111.181.38)
+Version: 4
+Header Length: 20 bytes
+Tos: 0x00
+Total length: 52
+Identifier: 0x7C6C (31852)
+Flag: 0x02
+RSV: 0
+DF: 0
+MF: 1
+Offset: 0
+TTL: 128ProtocolChecksum:0x00
+Source IP address: 59.78.38.164
+Destination IP address: 59.111.181.38
+
+TCP (53556 -> 80)
+Source port: 53556
+Destination port: 80
+SEQ: 0x943DD214
+ACK: 0x0
+Header length: 20 bytes
+Flag: 0x002
+URG: 0
+ACK: 0
+PSH: 0
+RST: 0
+SYN: 1
+FIN: 0
+Window size: 64240
+Checksum: 0x52AE
+Urg_ptr: 0

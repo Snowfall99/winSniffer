@@ -319,7 +319,7 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 	CString strTime = pktArrivalTime.Format("%Y_%m_%d_%H_%M_%S_");
 
 	CString file = _T("packet.txt");
-	CString path = _T(".\\tmp\\") + strTime + file;
+	CString path = _T(".\\capture\\") + strTime + file;
 
 	CStdioFile saveFile;
 	CFileException fileException;
@@ -977,7 +977,7 @@ int CwinSnifferDlg::printListCtrlPacketList(packetPool& pool, CString search_inf
 
 	int pktNum = pool.getSize();
 	for (int i = 0; i < pktNum; i++) {
-		if (pool.get(i).ip_header != NULL && pool.get(i).tcp_header != NULL) {
+		if (pool.get(i).ip_header != NULL && pool.get(i).tcp_header != NULL && pool.get(i).protocol == "TCP") {
 			if (pool.get(i).search(search_info)) {
 				printListCtrlPacketList(pool.get(i));
 			}
