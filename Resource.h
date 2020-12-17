@@ -11,12 +11,10 @@
 #define IDC_COMBO_DEVLIST               1000
 #define IDC_COMBO2                      1001
 #define IDC_COMBO_FILTERLIST            1001
-#define IDC_BUTTON1                     1002
 #define IDC_END_BUTTON                  1002
-#define IDC_BUTTON2                     1003
 #define IDC_START_BUTTON                1003
-#define IDC_BUTTON3                     1004
-#define IDC_READ_BUTTON                 1004
+#define IDC_FILTER_BUTTON               1004
+#define IDC_END_BUTTON2                 1004
 #define IDC_LIST1                       1006
 #define IDC_LIST                        1006
 #define IDC_PACKET_LIST                 1006
@@ -25,14 +23,19 @@
 #define IDC_SAVE_BUTTON                 1008
 #define IDC_EDIT1                       1009
 #define IDC_EDIT2                       1010
+#define IDC_SRC_EDIT                    1010
 #define IDC_EDIT3                       1011
-#define IDC_EDIT4                       1012
-#define IDC_EDIT5                       1013
+#define IDC_DST_EDIT                    1011
+#define IDC_MAC_SRC                     1012
+#define IDC_MAC_DST                     1013
 #define IDC_EDIT6                       1014
+#define IDC_SEARCH_EDIT                 1014
 #define IDC_EDIT7                       1015
 #define IDC_EDIT8                       1016
 #define IDC_EDIT9                       1017
 #define IDC_EDIT10                      1018
+#define IDC_MFCBUTTON1                  1022
+#define IDC_SEARCH_BUTTON               1023
 
 // Next default values for new objects
 // 
@@ -40,7 +43,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1021
+#define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

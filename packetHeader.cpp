@@ -1,18 +1,18 @@
 #include "pch.h"
 #include "stdafx.h"
-#include "packet.h"
+#include "packetHeader.h"
 #include "pcap.h"
+#include "utils.h"
 
 packet::packet() {
 	eth_header = NULL;
 	ip_header = NULL;
+	ipv6_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
 	igmp_header = NULL;
 	udp_header = NULL;
 	tcp_header = NULL;
-	dns_header = NULL;
-	dhcp_header = NULL;
 	http_msg = NULL;
 
 	packet_data = NULL;
@@ -23,13 +23,12 @@ packet::packet() {
 packet::packet(const packet& p) {
 	eth_header = NULL;
 	ip_header = NULL;
+	ipv6_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
 	igmp_header = NULL;
 	udp_header = NULL;
 	tcp_header = NULL;
-	dns_header = NULL;
-	dhcp_header = NULL;
 	http_msg = NULL;
 
 	if (!p.isEmpty()) {
@@ -55,13 +54,12 @@ packet::packet(const packet& p) {
 packet::packet(const struct pcap_pkthdr* header, const u_char* pkt_data, const u_short& packet_num) {
 	eth_header = NULL;
 	ip_header = NULL;
+	ipv6_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
 	igmp_header = NULL;
 	udp_header = NULL;
 	tcp_header = NULL;
-	dns_header = NULL;
-	dhcp_header = NULL;
 	http_msg = NULL;
 	num = packet_num;
 
@@ -86,14 +84,13 @@ packet& packet::operator=(const packet& p) {
 	}
 	eth_header = NULL;
 	ip_header = NULL;
+	ipv6_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
 	igmp_header = NULL;
 	udp_header = NULL;
 	tcp_header = NULL;
-	dns_header = NULL;
-	dhcp_header = NULL;
-
+	
 	if (!p.isEmpty()) {
 		int caplen = p.header->caplen;
 		if (packet_data == NULL) {
@@ -121,13 +118,12 @@ packet& packet::operator=(const packet& p) {
 packet::~packet() {
 	eth_header = NULL;
 	ip_header = NULL;
+	ipv6_header = NULL;
 	arp_header = NULL;
 	icmp_header = NULL;
 	igmp_header = NULL;
 	tcp_header = NULL;
 	udp_header = NULL;
-	dns_header = NULL;
-	dhcp_header = NULL;
 	http_msg = NULL;
 	num = -1;
 
@@ -157,6 +153,9 @@ int packet::decodeEthernet() {
 	switch (ntohs(eth_header->eth_type)) {
 	case ETHERNET_TYPE_IP:
 		decodeIP(packet_data + ETHERNET_HEADER_LENGTH);
+		break;
+	case ETHERNET_TYPE_IPv6:
+		decodeIPv6(packet_data + ETHERNET_HEADER_LENGTH);
 		break;
 	case ETHERNET_TYPE_ARP:
 		decodeARP(packet_data + ETHERNET_HEADER_LENGTH);
@@ -192,6 +191,17 @@ int packet::decodeIP(u_char* L2Payload) {
 	default:
 		break;
 	}
+	return 0;
+}
+
+int packet::decodeIPv6(u_char* L2Payload) {
+	if (L2Payload == NULL) {
+		return -1;
+	}
+
+	protocol = "IPv6";
+	ipv6_header = (IPv6_Header*)(L2Payload);
+	
 	return 0;
 }
 
@@ -235,9 +245,7 @@ int packet::decodeTCP(u_char* L3Payload) {
 	tcp_header = (TCP_Header*)(L3Payload);
 
 	short TCPHeaderLen = (ntohs(tcp_header->headerLen_rsv_flags) >> 12) * 4;
-	if (ntohs(tcp_header->src) == PORT_DNS || ntohs(tcp_header->dst) == PORT_DNS) {
-		decodeDNS(L3Payload + TCPHeaderLen);
-	} else if (ntohs(tcp_header->src) == PORT_HTTP || ntohs(tcp_header->dst) == PORT_HTTP) {
+	if (ntohs(tcp_header->src) == PORT_HTTP || ntohs(tcp_header->dst) == PORT_HTTP) {
 		int HTTPMsgLen = getL4PayloadLength();
 		if (HTTPMsgLen > 0) {
 			decodeHTTP(L3Payload + TCPHeaderLen);
@@ -253,33 +261,7 @@ int packet::decodeUDP(u_char* L3Payload) {
 
 	protocol = "UDP";
 	udp_header = (UDP_Header*)(L3Payload);
-	if (ntohs(udp_header->src) == PORT_DNS || ntohs(udp_header->dst) == PORT_DNS) {
-		decodeDNS(L3Payload + UDP_HEADER_LENGTH);
-	}
-	else if ((ntohs(udp_header->src) == PORT_DHCP_CLIENT && ntohs(udp_header->dst) == PORT_DHCP_SERVER) || (ntohs(udp_header->src) == PORT_DHCP_SERVER && ntohs(udp_header->dst) == PORT_DHCP_CLIENT)) {
-		decodeDHCP(L3Payload + UDP_HEADER_LENGTH);
-	}
 
-	return 0;
-}
-
-int packet::decodeDNS(u_char* L4Payload) {
-	if (L4Payload == NULL) {
-		return -1;
-	}
-
-	protocol = "DNS";
-	dns_header = (DNS_Header*)(L4Payload);
-	return 0;
-}
-
-int packet::decodeDHCP(u_char* L4Payload) {
-	if (L4Payload == NULL) {
-		return -1;
-	}
-
-	protocol = "DHCP";
-	dhcp_header = (DHCP_Header*)(L4Payload);
 	return 0;
 }
 
@@ -330,7 +312,7 @@ u_short packet::getICMPID() const {
 	}
 	else
 	{
-		return (u_short)(ntohl(icmp_header->others) >> 16);
+		return (u_short)(ntohl(icmp_header->icmp_id));
 	}
 }
 
@@ -339,7 +321,7 @@ u_short packet::getICMPSeq() const {
 		return -1;
 	}
 	else {
-		return (u_short)(ntohl(icmp_header->others) & 0x0000FFFF);
+		return (u_short)(ntohl(icmp_header->icmp_seq) & 0x0000FFFF);
 	}
 }
 
@@ -355,7 +337,7 @@ int packet::getTCPHeaderLengthRaw() const {
 
 u_short packet::getTCPFlags() const {
 	if (tcp_header == NULL) return -1;
-	else return ntohs(tcp_header->headerLen_rsv_flags) & 0x0FFF;
+	else return ntohs(tcp_header->headerLen_rsv_flags) & 0xFF;
 }
 
 int packet::getTCPFlagsURG() const {
@@ -370,29 +352,30 @@ int packet::getTCPFlagsACK() const {
 
 int packet::getTCPFlagsPSH() const {
 	if (tcp_header == NULL) return -1;
-	else return (ntohs(tcp_header->headerLen_rsv_flags) >> 3) & 0x0001;
+	else return (ntohs(tcp_header->headerLen_rsv_flags) >> 3) & 0x01;
 }
 
 int packet::getTCPFlagsRST() const {
 	if (tcp_header == NULL) return -1;
-	else return (ntohs(tcp_header->headerLen_rsv_flags) >> 2) & 0x0001;
+	else return (ntohs(tcp_header->headerLen_rsv_flags) >> 2) & 0x01;
 }
 
 int packet::getTCPFlagsSYN() const {
 	if (tcp_header == NULL) return -1;
-	else return (ntohs(tcp_header->headerLen_rsv_flags) >> 1) & 0x0001;
+	else return (ntohs(tcp_header->headerLen_rsv_flags) >> 1) & 0x01;
 }
 
 int packet::getTCPFlagsFIN() const {
 	if (tcp_header == NULL) return -1;
-	else return ntohs(tcp_header->headerLen_rsv_flags);
+	else return ntohs(tcp_header->headerLen_rsv_flags) & 0x01;
 }
 
 int packet::getL4PayloadLength() const {
 	if (ip_header == NULL || tcp_header == NULL) {
-		return 0;
+		return -1;
 	}
 
+	if (ip_header->total_len == NULL) { return -1; }
 	int IPTotalLen = ntohs(ip_header->total_len);
 	int IPHeaderLen = (ip_header->ver_headerLen & 0x0f) * 4;
 	int TCPHeaderLen = (ntohs(tcp_header->headerLen_rsv_flags) >> 12) * 4;
@@ -400,67 +383,77 @@ int packet::getL4PayloadLength() const {
 	return IPTotalLen - IPHeaderLen - TCPHeaderLen;
 }
 
-int packet::getDNSFlagsQR() const
-{
-	if (dns_header == NULL)
-		return -1;
-	else
-		return	dns_header->flags >> 15;
-}
-
-int packet::getDNSFlagsOPCODE() const {
-	if (dns_header == NULL) {
-		return -1;
+CString getARPMessage(packet pkt) {
+	CString message;
+	if (pkt.arp_header != NULL) {
+		switch (ntohs(pkt.arp_header->opcode)) {
+		case ARP_OPCODE_REQUEST:
+			message = IPAddr2CString(pkt.arp_header->src_ip) + _T(" request MAC address of ") + IPAddr2CString(pkt.arp_header->dst_ip);
+			break;
+		case ARP_OPCODE_REPLY:
+			message = IPAddr2CString(pkt.arp_header->src_ip) + _T(" reply ") + IPAddr2CString(pkt.arp_header->dst_ip);
+			break;
+		default:
+			break;
+		}
+		return message;
 	}
 	else {
-		return (ntohs(dns_header->flags) >> 11) & 0x000F;
+		return NULL;
 	}
 }
 
-int packet::getDNSFlagsAA() const
-{
-	if (dns_header == NULL)
-		return -1;
-	else
-		return (ntohs(dns_header->flags) >> 10) & 0x0001;
+CString getIPv6Message(packet pkt) {
+	CString message;
+	if (pkt.ipv6_header != NULL) {
+		message = _T("From ") + IPv6Addr2CString(pkt.ipv6_header->src) + _T(" to ") + IPv6Addr2CString(pkt.ipv6_header->dst);
+		return message;
+	}
+	else {
+		return NULL;
+	}
+	
 }
 
-int packet::getDNSFlagsTC() const
-{
-	if (dns_header == NULL)
-		return -1;
-	else
-		return (ntohs(dns_header->flags) >> 9) & 0x0001;
+CString getIPMessage(packet pkt) {
+	CString message;
+	if (pkt.ip_header != NULL) {
+		switch (pkt.ip_header->protocol) {
+		case PROTOCOL_ICMP:
+			message.Format(_T("Type: %u"), pkt.icmp_header->icmp_type);
+			break;
+		case PROTOCOL_IGMP:
+			message.Format(_T("Type: %u"), pkt.igmp_header->igmp_type);
+			break;
+		case PROTOCOL_TCP:
+			message = _T("From ") + IPAddr2CString(pkt.ip_header->src) + _T(" to ") + IPAddr2CString(pkt.ip_header->src);
+			break;
+		case PROTOCOL_UDP:
+			message = _T("From ") + IPAddr2CString(pkt.ip_header->src) + _T(" to ") + IPAddr2CString(pkt.ip_header->dst);
+			break;
+		default:
+			break;
+		}
+		return message;
+	}
+	else {
+		return NULL;
+	}
 }
 
-int packet::getDNSFlagsRD() const
-{
-	if (dns_header == NULL)
-		return -1;
-	else
-		return (ntohs(dns_header->flags) >> 8) & 0x0001;
-}
+bool packet::search(CString keyword) {
+	CString message, strTmp;
+	u_char* data;
+	int len_data = getL4PayloadLength();
+	data = (packet_data + 54);
 
-int packet::getDNSFlagsRA() const
-{
-	if (dns_header == NULL)
-		return -1;
-	else
-		return (ntohs(dns_header->flags) >> 7) & 0x0001;
-}
+	for (int i = 0; i < len_data; i++) {
+		strTmp.Format(_T("%c"), *data);
+		message += strTmp;
+	}
 
-int packet::getDNSFlagsZ() const
-{
-	if (dns_header == NULL)
-		return -1;
-	else
-		return (ntohs(dns_header->flags) >> 4) & 0x0007;
-}
-
-int packet::getDNSFlagsRCODE() const
-{
-	if (dns_header == NULL)
-		return -1;
-	else
-		return ntohs(dns_header->flags) & 0x000F;
+	if (message == keyword) {
+		return true;
+	}
+	return false;
 }
