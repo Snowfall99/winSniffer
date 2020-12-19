@@ -132,17 +132,14 @@ BEGIN_MESSAGE_MAP(CwinSnifferDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_START_BUTTON, &CwinSnifferDlg::OnBnClickedStartButton)
 	ON_BN_CLICKED(IDC_END_BUTTON, &CwinSnifferDlg::OnBnClickedEndButton)
 	ON_BN_CLICKED(IDC_FILTER_BUTTON, &CwinSnifferDlg::OnClickedFilterButton)
-	// ON_NOTIFY(LVN_ITEMCHANGED, IDC_PACKET_LIST, &CwinSnifferDlg::initialListCtrlPacketList)
-	// ON_NOTIFY(TVN_SELCHANGED, IDC_TREE1, &CwinSnifferDlg::initialTreeCtrlPacketDetails)
 	ON_CBN_EDITUPDATE(IDC_COMBO_DEVLIST, &CwinSnifferDlg::initialDevList)
 	ON_CBN_EDITUPDATE(IDC_COMBO_FILTERLIST, &CwinSnifferDlg::initialFilterList)
-	// ON_NOTIFY(LVN_ITEMCHANGED, IDC_PACKET_LIST, &CwinSnifferDlg::printListCtrlPacketList)
-	// ON_NOTIFY(TVN_SELCHANGED, IDC_TREE1, &CwinSnifferDlg::printTreeCtrlPacketDetails)
 	ON_EN_CHANGE(IDC_EDIT1, &CwinSnifferDlg::initialEditCtrlPacketBytes)
 	ON_NOTIFY(NM_CLICK, IDC_PACKET_LIST, &CwinSnifferDlg::onClickedList)
 	ON_NOTIFY(NM_CUSTOMDRAW, IDC_PACKET_LIST, &CwinSnifferDlg::OnCustomDrawList)
 	ON_BN_CLICKED(IDC_SAVE_BUTTON, &CwinSnifferDlg::OnBnClickedSaveButton)
 	ON_BN_CLICKED(IDC_SEARCH_BUTTON, &CwinSnifferDlg::OnBnClickedSearchButton)
+	ON_BN_CLICKED(IDC_REGROUP_BUTTON, &CwinSnifferDlg::OnBnClickedRecombineButton)
 END_MESSAGE_MAP()
 
 
@@ -265,6 +262,7 @@ void CwinSnifferDlg::OnBnClickedStartButton()
 		GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(FALSE);
 		GetDlgItem(IDC_SEARCH_BUTTON)->EnableWindow(FALSE);
 		GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(FALSE);
+		GetDlgItem(IDC_REGROUP_BUTTON)->EnableWindow(FALSE);
 
 		/* 清除之前抓到的数据包 */
 		m_listCtrlPacketList.DeleteAllItems();
@@ -287,6 +285,7 @@ void CwinSnifferDlg::OnBnClickedEndButton()
 	GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(TRUE);	// 将FILTER按钮置为可以点击状态
 	GetDlgItem(IDC_SEARCH_BUTTON)->EnableWindow(TRUE);	// 将SEARCH按钮置为可以点击状态
 	GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(TRUE);	// 将SAVE按钮置为可以点击状态
+	GetDlgItem(IDC_REGROUP_BUTTON)->EnableWindow(TRUE);
 	AfxMessageBox(_T("End Catching..."), MB_OK);
 	m_catcher.stopCapture();
 	m_pktCaptureFlag = false;
@@ -685,6 +684,115 @@ void CwinSnifferDlg::OnBnClickedSaveButton()
 	saveFile.Close();
 }
 
+/* 点击Regroup按钮对应处理函数 */
+void CwinSnifferDlg::OnBnClickedRecombineButton()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	int selectedItemIndex = m_listCtrlPacketList.GetSelectionMark();
+
+	CString  strPktNum = m_listCtrlPacketList.GetItemText(selectedItemIndex, 0);
+	int pktNum = _ttoi(strPktNum);
+	if (pktNum < 0 || pktNum > m_pool.getSize()) {
+		return;
+	}
+
+	const packet& pkt = m_pool.get(pktNum);       //对选定的包执行重组
+
+	if (pkt.isEmpty()) {                                //未选择包
+		AfxMessageBox(_T("Please choose a packet"));
+		return;
+	}
+
+	if (pkt.getIPFlagDF() == 1) {
+		AfxMessageBox(_T("No sharding"));       //如果DF为1则显示没有分片
+	}
+	else {
+		packet newPkt = pkt;     //准备结果数据包
+		newPkt.packet_data = new  u_char[8000];
+		u_short id = pkt.ip_header->identifier;    //获取已选择的ip包的标识          
+		int* a;
+		a = new int[m_pool.getSize()];
+		for (int i = 0; i < m_pool.getSize(); i++) {
+			a[i] = 0;
+		}
+
+		for (int i = 1; i < m_pool.getSize(); i++) {       //与捕获的包依次对比来确认标识是否相同
+			packet& tmpPkt = m_pool.get(i); int j = 1;
+			if (tmpPkt.ip_header != nullptr) {
+				if (tmpPkt.ip_header->identifier == id && pktNum != i) {
+					a[j] = i;
+				}
+			} j++;
+		}
+		for (int i = 0; i < m_pool.getSize() - 1; i++) {    //对偏移位从小到大排序
+			if (a[i] != 0) {
+				int tmp;
+				packet& Pkt1 = m_pool.get(a[i]);
+				packet& Pkt2 = m_pool.get(a[i + 1]);
+				if (Pkt1.getIPOffset() > Pkt2.getIPOffset()) {
+					tmp = a[i];
+					a[i] = a[i + 1];
+					a[i + 1] = tmp;
+				}
+			}
+		}
+
+		for (int i = 0; i < m_pool.getSize(); i++) {
+			if (a[i] != 0) {
+				newPkt.ip_header->total_len = m_pool.get(a[i]).ip_header->total_len + ((m_pool.get(a[i]).ip_header->ver_headerLen & 15) * 4);
+				newPkt.ip_header->flags_offset = m_pool.get(a[0]).ip_header->flags_offset & 0xcfff;
+				newPkt.ip_header->flags_offset = m_pool.get(a[0]).ip_header->flags_offset | 0x4000;           //更改MF和DF
+
+				unsigned char* newdata = new unsigned char[14 + m_pool.get(a[i]).ip_header->total_len + 1];
+				memcpy(newdata, m_pool.get(a[i]).eth_header, 14);
+				memcpy(newdata + 14, m_pool.get(a[i]).ip_header, ((m_pool.get(a[i]).ip_header->ver_headerLen & 0xf) * 4));
+				memcpy(newdata + 14 + ((m_pool.get(a[i]).ip_header->ver_headerLen & 0xf) * 4), m_pool.get(a[i]).packet_data, m_pool.get(a[i]).ip_header->total_len - ((m_pool.get(a[i]).ip_header->ver_headerLen & 0xf) * 4));
+
+				newPkt.packet_data = newdata;                                   //复制并存储数据包内容
+				struct pcap_pkthdr* newheader = new struct pcap_pkthdr;
+				newheader->caplen = newPkt.header->caplen;
+				newheader->ts = newPkt.header->ts;
+				newheader->len = static_cast<bpf_u_int32>(14 + m_pool.get(a[i]).ip_header->total_len + 14);
+				newPkt.header = newheader;
+			}
+		}
+		
+		CString strText, strTmp;
+
+		strTmp.Format(_T("标识：0x%04hX(%hu)\n"), ntohs(newPkt.ip_header->identifier), ntohs(pkt.ip_header->identifier));
+		strText += strText;
+
+		strTmp.Format(_T("版本号：%d\n"), newPkt.ip_header->ver_headerLen >> 4);
+		strText += strTmp;
+
+		strTmp.Format(_T("服务质量：0x%02X\n"), newPkt.ip_header->tos);
+		strText += strTmp;
+
+		strTmp.Format(_T("去除以太网头部后总长度：%hu\n"), ntohs(newPkt.ip_header->total_len));
+		strText += strTmp;
+
+		strTmp = _T("源IP地址：") + IPAddr2CString(newPkt.ip_header->src) + _T("\n");
+		strText += strTmp;
+		
+		strTmp = _T("目的IP地址：") + IPAddr2CString(newPkt.ip_header->dst) + _T("\n");
+		strText += strTmp;
+
+		strTmp.Format(_T("TTL：%u\n"), newPkt.ip_header->ttl);
+		strText += strTmp;
+
+		switch (newPkt.ip_header->protocol)
+		{
+		case PROTOCOL_TCP:	strTmp = _T("协议：TCP（6）\n");	break;
+		case PROTOCOL_UDP:	strTmp = _T("协议：UDP（17）\n");	break;
+		default:			strTmp.Format(_T("协议：未知（%d）\n"), newPkt.ip_header->protocol);	break;
+		}
+		strText += strTmp;
+
+		AfxMessageBox(strText);
+	}
+}
+
+/* 点击Filter按钮对应处理函数 */
 void CwinSnifferDlg::OnClickedFilterButton()
 {
 	/* 获取包过滤对应参数 */
@@ -707,6 +815,7 @@ void CwinSnifferDlg::OnClickedFilterButton()
 	printListCtrlPacketList(m_pool, strFilter, ip_src_addr, ip_dst_addr, mac_src_addr, mac_dst_addr);
 }
 
+/* 点击Search按钮对应处理函数 */
 void CwinSnifferDlg::OnBnClickedSearchButton()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -732,6 +841,7 @@ void CwinSnifferDlg::initialBtns()
 	GetDlgItem(IDC_FILTER_BUTTON)->EnableWindow(FALSE);
 	GetDlgItem(IDC_SEARCH_BUTTON)->EnableWindow(FALSE);
 	GetDlgItem(IDC_SAVE_BUTTON)->EnableWindow(FALSE);
+	GetDlgItem(IDC_REGROUP_BUTTON)->EnableWindow(FALSE);
 }
 
 /* 网卡列表初始化 */
@@ -2119,5 +2229,3 @@ void CwinSnifferDlg::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 		*pResult = CDRF_DODEFAULT;
 	}
 }
-
-
