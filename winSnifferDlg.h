@@ -98,4 +98,5 @@ public:
 	CString m_mac_dst;
 	CString m_search_edit;
 	afx_msg void OnBnClickedSearchButton();
+	afx_msg void OnBnClickedRecombineButton();
 };
